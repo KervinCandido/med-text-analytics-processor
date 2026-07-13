@@ -22,7 +22,7 @@ public class Outros extends Document {
     private String descricaoGeral;
 
     @Override
-    protected Optional<LocalDateTime> documentDate() {
+    protected Optional<LocalDateTime> resolveDocumentDate() {
         return Optional.ofNullable(uploadedAt);
     }
 }

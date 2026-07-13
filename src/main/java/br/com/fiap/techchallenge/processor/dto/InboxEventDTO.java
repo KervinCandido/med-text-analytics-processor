@@ -1,18 +1,10 @@
 package br.com.fiap.techchallenge.processor.dto;
 
-import java.util.List;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+import java.util.UUID;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class InboxEventDTO {
-    private String Id;
-    private List<String> filePaths;
-    private String userId;
-    private int totalFiles;
+public record InboxEventDTO (UUID eventId, UUID documentId, String filePath, UUID patientId) {
+
+    public InboxEventDTO(String eventId, String documentId, String filePaths, String patientId) {
+        this(UUID.fromString(eventId), UUID.fromString(documentId), filePaths, UUID.fromString(patientId));
+    }
 }

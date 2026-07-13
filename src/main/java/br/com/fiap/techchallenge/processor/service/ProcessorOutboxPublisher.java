@@ -15,7 +15,7 @@ import jakarta.annotation.PreDestroy;
 import java.util.List;
 import java.util.Properties;
 
-@ApplicationScoped
+//@ApplicationScoped
 public class ProcessorOutboxPublisher {
 
     private static final Logger logger = LoggerFactory.getLogger(ProcessorOutboxPublisher.class);
@@ -43,7 +43,7 @@ public class ProcessorOutboxPublisher {
         }
     }
 
-    @Scheduled(every = "${app.outbox.publisher.interval:5s}")
+//    @Scheduled(every = "${app.outbox.publisher.interval:5s}")
     public void publishEvents() {
         List<ProcessorOutboxEvent> pendingEvents = ProcessorOutboxEvent.list("status", "PENDING");
         if (!pendingEvents.isEmpty()) {

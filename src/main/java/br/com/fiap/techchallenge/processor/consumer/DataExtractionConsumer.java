@@ -1,6 +1,6 @@
 package br.com.fiap.techchallenge.processor.consumer;
 
-import br.com.fiap.techchallenge.processor.dto.DocumentsUploadMessageDTO;
+import br.com.fiap.techchallenge.processor.dto.DocumentProcessingRequestedDTO;
 import br.com.fiap.techchallenge.processor.dto.InboxEventDTO;
 import br.com.fiap.techchallenge.processor.service.CreateInboxEventService;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -22,11 +22,11 @@ public class DataExtractionConsumer {
     }
 
     @Incoming("data-extraction")
-    public void dataExtraction(DocumentsUploadMessageDTO message) {
+    public void dataExtraction(DocumentProcessingRequestedDTO message) {
         try {
-            var inboxEventDTO = new InboxEventDTO(message.getDocumentsUploadId(), message.getFileUrls(), message.getPatientId(), message.getFileUrls().size());
+            var inboxEventDTO = new InboxEventDTO(message.eventId(), message.documentId(), message.fileUrl(), message.patientId());
             createInboxEventService.create(inboxEventDTO);
-            logger.info("action=imagesUploadMessageReceivedSuccess, jobId={}, filePaths={}", message.getDocumentsUploadId(), message.getFileUrls());
+            logger.info("action=documentProcessingRequestedDTO, eventId={}, documentId={}, filePath={}", message.eventId(), message.documentId(), message.fileUrl());
         } catch (Exception e) {
             logger.error("action=imagesUploadMessageReceivedError, reason={}", e.getMessage(), e);
         }

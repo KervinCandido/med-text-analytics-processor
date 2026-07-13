@@ -5,8 +5,6 @@ import dev.langchain4j.data.image.Image;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import io.quarkiverse.langchain4j.RegisterAiService;
-import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
-import org.eclipse.microprofile.faulttolerance.Retry;
 
 @SystemMessage(
         """
@@ -49,7 +47,5 @@ public interface ClassifyDocumentIAService {
         Extraia as informações necessárias e classifique o documento preenchendo os campos solicitados.
         """
     )
-    @Retry
-    @CircuitBreaker
     DocumentMetaDataDTO classifyDocument(Image image);
 }

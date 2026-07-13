@@ -6,8 +6,6 @@ import dev.langchain4j.data.image.Image;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import io.quarkiverse.langchain4j.RegisterAiService;
-import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
-import org.eclipse.microprofile.faulttolerance.Retry;
 
 @SystemMessage(
     """
@@ -43,8 +41,6 @@ public interface LaudoEndoscopiaDigestivaAltaIAService extends DocumentExtractDa
         Extraia as informações necessárias preenchendo os campos solicitados.
         """
     )
-    @Retry
-    @CircuitBreaker
     @Override
     EndoscopiaLaudo extractData(Image image);
 }

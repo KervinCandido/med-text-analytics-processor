@@ -10,11 +10,13 @@ import java.util.Optional;
 @Getter
 @Setter
 public abstract class Document extends PanacheMongoEntity {
-    private String userId;
+
+    private String patientId;
     private DocumentType documentType;
     private LocalDateTime documentDate;
-    protected abstract Optional<LocalDateTime> documentDate();
+    protected abstract Optional<LocalDateTime> resolveDocumentDate();
+
     public void applyDocumentDateWithFallback(LocalDateTime dateTime) {
-        this.documentDate = documentDate().orElse(dateTime);
+        this.documentDate = resolveDocumentDate().orElse(dateTime);
     }
 }

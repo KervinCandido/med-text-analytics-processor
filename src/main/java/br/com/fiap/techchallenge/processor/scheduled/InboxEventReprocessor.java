@@ -12,25 +12,25 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 @ApplicationScoped
-public class InboxEventProcessor {
+public class InboxEventReprocessor {
 
-    private static final Logger logger = LoggerFactory.getLogger(InboxEventProcessor.class);
+    private static final Logger logger = LoggerFactory.getLogger(InboxEventReprocessor.class);
 
     private final ProcessInboxEventService processInboxEventService;
 
     @Inject
-    public InboxEventProcessor(ProcessInboxEventService processInboxEventService) {
+    public InboxEventReprocessor(ProcessInboxEventService processInboxEventService) {
         this.processInboxEventService = processInboxEventService;
     }
 
     @Blocking
-    @Scheduled(every = "${app.inbox.processor.interval:10s}", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+    @Scheduled(every = "${app.inbox.reprocessor.interval:10s}", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
     public void process() {
         try {
-            List<InboxEvent> pendingEvents = InboxEvent.findAllPending();
+            List<InboxEvent> pendingEvents = InboxEvent.findAllReprocess();
             pendingEvents.forEach(processInboxEventService::process);
         } catch (Exception e) {
-            logger.error("action=processInboxEventsError, reason={}", e.getMessage(), e);
+            logger.error("action=reprocessInboxEventsError, reason={}", e.getMessage(), e);
         }
     }
 }

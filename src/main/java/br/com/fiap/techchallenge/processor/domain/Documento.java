@@ -2,17 +2,17 @@ package br.com.fiap.techchallenge.processor.domain;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.bson.types.ObjectId;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 @Getter
 @Setter
-public abstract class Document {
+public abstract class Documento {
 
-    private ObjectId id;
-    private String patientId;
+    private String id;
+    private UUID patientId;
     private DocumentType documentType;
     private LocalDateTime documentDate;
     

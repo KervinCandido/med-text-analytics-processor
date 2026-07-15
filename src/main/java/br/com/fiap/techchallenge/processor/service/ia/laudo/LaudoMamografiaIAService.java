@@ -1,6 +1,6 @@
 package br.com.fiap.techchallenge.processor.service.ia.laudo;
 
-import br.com.fiap.techchallenge.processor.persistence.entity.laudo.MamografiaLaudoEntity;
+import br.com.fiap.techchallenge.processor.domain.laudo.MamografiaLaudo;
 import br.com.fiap.techchallenge.processor.service.ia.DocumentExtractDataIAService;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.service.SystemMessage;
@@ -46,5 +46,5 @@ public interface LaudoMamografiaIAService extends DocumentExtractDataIAService {
         """
     )
     @Override
-    MamografiaLaudoEntity extractData(Image image);
+    MamografiaLaudo extractData(Image image);
 }

@@ -1,11 +1,10 @@
 package br.com.fiap.techchallenge.processor.domain.exame;
 
+import br.com.fiap.techchallenge.processor.domain.Documento;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-
-import br.com.fiap.techchallenge.processor.domain.Document;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -13,11 +12,7 @@ import java.util.Optional;
 @Getter
 @Setter
 @NoArgsConstructor
-public class Exame extends Document {
-    private String fileName;
-    private String filePath;
-    private LocalDateTime uploadedAt;
-    
+public class Exame extends Documento {
     private String exameTipo; // e.g. "HEMOGRAMA", "LIPIDOGRAMA", "OUTRO"
     private String material;  // e.g. "Soro", "Sangue total"
     private String metodo;    // e.g. "Enzimático", "Automatizado"

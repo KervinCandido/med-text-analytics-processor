@@ -1,6 +1,6 @@
 package br.com.fiap.techchallenge.processor.service.ia.registro_atendimento;
 
-import br.com.fiap.techchallenge.processor.persistence.entity.registro_atendimento.RegistroAtendimentoEntity;
+import br.com.fiap.techchallenge.processor.domain.registro_atendimento.RegistroAtendimento;
 import br.com.fiap.techchallenge.processor.service.ia.DocumentExtractDataIAService;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.service.SystemMessage;
@@ -36,5 +36,5 @@ public interface RegistroAtendimentoIAService extends DocumentExtractDataIAServi
         """
     )
     @Override
-    RegistroAtendimentoEntity extractData(Image image);
+    RegistroAtendimento extractData(Image image);
 }

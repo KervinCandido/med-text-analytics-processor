@@ -1,6 +1,6 @@
 package br.com.fiap.techchallenge.processor.service.ia.exame;
 
-import br.com.fiap.techchallenge.processor.persistence.entity.exame.LipidogramaExameEntity;
+import br.com.fiap.techchallenge.processor.domain.exame.LipidogramaExame;
 import br.com.fiap.techchallenge.processor.service.ia.DocumentExtractDataIAService;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.service.SystemMessage;
@@ -44,5 +44,5 @@ public interface LipidogramaIAService extends DocumentExtractDataIAService {
         """
     )
     @Override
-    LipidogramaExameEntity extractData(Image image);
+    LipidogramaExame extractData(Image image);
 }

@@ -1,26 +1,21 @@
 package br.com.fiap.techchallenge.processor.domain.outros;
 
+import br.com.fiap.techchallenge.processor.domain.Documento;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-
-import br.com.fiap.techchallenge.processor.domain.Document;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Getter
 @Setter
 @NoArgsConstructor
-public class Outros extends Document {
-    private String fileName;
-    private String filePath;
-    private LocalDateTime uploadedAt;
-    
+public class Outros extends Documento {
     private String descricaoGeral;
 
     @Override
     protected Optional<LocalDateTime> resolveDocumentDate() {
-        return Optional.ofNullable(uploadedAt);
+        return Optional.empty();
     }
 }

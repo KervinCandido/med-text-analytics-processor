@@ -1,25 +1,21 @@
 package br.com.fiap.techchallenge.processor.persistence.entity.exame;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-
-
-import br.com.fiap.techchallenge.processor.persistence.entity.DocumentEntity;
+import br.com.fiap.techchallenge.processor.persistence.entity.DocumentoEntity;
 import io.quarkus.mongodb.panache.common.MongoEntity;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.bson.codecs.pojo.annotations.BsonDiscriminator;
+
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
-@MongoEntity(collection = "exames")
+@BsonDiscriminator
+@MongoEntity(collection = "documentos")
 @Getter
 @Setter
 @NoArgsConstructor
-public class ExameEntity extends DocumentEntity {
-    private String fileName;
-    private String filePath;
-    private LocalDateTime uploadedAt;
-    
+public class ExameEntity extends DocumentoEntity {
     private String exameTipo; // e.g. "HEMOGRAMA", "LIPIDOGRAMA", "OUTRO"
     private String material;  // e.g. "Soro", "Sangue total"
     private String metodo;    // e.g. "Enzimático", "Automatizado"
@@ -29,8 +25,4 @@ public class ExameEntity extends DocumentEntity {
     private List<String> notas;       // Lista de notas do exame
     private String descricaoGeral;
 
-    @Override
-    protected Optional<LocalDateTime> resolveDocumentDate() {
-        return Optional.ofNullable(this.dataColeta != null ? this.dataColeta : this.dataLiberacao);
-    }
 }

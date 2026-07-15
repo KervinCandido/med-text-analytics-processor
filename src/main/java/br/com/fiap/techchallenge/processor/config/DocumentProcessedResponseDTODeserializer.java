@@ -1,10 +1,10 @@
 package br.com.fiap.techchallenge.processor.config;
 
-import br.com.fiap.techchallenge.processor.dto.DocumentProcessingRequestedDTO;
+import br.com.fiap.techchallenge.processor.dto.DocumentProcessedResponseDTO;
 import io.quarkus.kafka.client.serialization.ObjectMapperDeserializer;
 
-public class DocumentProcessingRequestedDTODeserializer extends ObjectMapperDeserializer<DocumentProcessingRequestedDTO> {
-    public DocumentProcessingRequestedDTODeserializer() {
-        super(DocumentProcessingRequestedDTO.class);
+public class DocumentProcessedResponseDTODeserializer extends ObjectMapperDeserializer<DocumentProcessedResponseDTO> {
+    public DocumentProcessedResponseDTODeserializer() {
+        super(DocumentProcessedResponseDTO.class);
     }
 }

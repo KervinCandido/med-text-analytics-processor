@@ -1,13 +1,15 @@
 package br.com.fiap.techchallenge.processor.service;
 
 import br.com.fiap.techchallenge.processor.domain.DocumentType;
-import br.com.fiap.techchallenge.processor.domain.ProcessingStatus;
 import br.com.fiap.techchallenge.processor.domain.inbox.InboxDocumentProcessingRequest;
+import br.com.fiap.techchallenge.processor.domain.outbox.OutboxDocumentResponse;
 import br.com.fiap.techchallenge.processor.persistence.DocumentoRepository;
 import br.com.fiap.techchallenge.processor.persistence.InboxDocumentProcessingRequestRepository;
-import br.com.fiap.techchallenge.processor.persistence.entity.inbox.InboxDocumentProcessingRequestEntity;
-import br.com.fiap.techchallenge.processor.persistence.entity.outbox.OutboxEventEntity;
+import br.com.fiap.techchallenge.processor.persistence.OutboxDocumentProcessedResponseRepository;
+import br.com.fiap.techchallenge.processor.persistence.mapper.DocumentoMapper;
 import br.com.fiap.techchallenge.processor.persistence.mapper.ObjectIdMapper;
+import br.com.fiap.techchallenge.processor.persistence.mapper.inbox.InboxDocumentProcessingRequestMapper;
+import br.com.fiap.techchallenge.processor.persistence.mapper.outbox.OutboxDocumentResponseMapper;
 import br.com.fiap.techchallenge.processor.service.ia.DocumentExtractDataIAStrategy;
 import br.com.fiap.techchallenge.processor.service.ia.classify.ClassifyDocumentIAService;
 import dev.langchain4j.data.image.Image;
@@ -26,29 +28,42 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
-import java.util.UUID;
 
 @ApplicationScoped
-public class ProcessInboxEventService {
+public class ProcessDocumentRequestService {
 
-    private static final Logger logger = LoggerFactory.getLogger(ProcessInboxEventService.class);
+    private static final Logger logger = LoggerFactory.getLogger(ProcessDocumentRequestService.class);
 
     private final ClassifyDocumentIAService classifyDocumentIAService;
     private final DocumentExtractDataIAStrategy documentExtractDataIAStrategy;
     private final DocumentoRepository documentoRepository;
     private final InboxDocumentProcessingRequestRepository inboxRepository;
+    private final OutboxDocumentProcessedResponseRepository outboxRepository;
+    private final InboxDocumentProcessingRequestMapper inboxMapper;
+    private final DocumentoMapper documentoMapper;
+    private final OutboxDocumentResponseMapper outboxMapper;
     private final ObjectIdMapper objectIdMapper;
 
     @Inject
-    public ProcessInboxEventService (
+    public ProcessDocumentRequestService(
             ClassifyDocumentIAService classifyDocumentIAService,
             DocumentExtractDataIAStrategy documentExtractDataIAStrategy,
-            DocumentoRepository documentoRepository, InboxDocumentProcessingRequestRepository inboxRepository, ObjectIdMapper objectIdMapper
+            DocumentoRepository documentoRepository,
+            InboxDocumentProcessingRequestRepository inboxRepository,
+            OutboxDocumentProcessedResponseRepository outboxRepository,
+            InboxDocumentProcessingRequestMapper inboxMapper,
+            DocumentoMapper documentoMapper,
+            OutboxDocumentResponseMapper outboxMapper,
+            ObjectIdMapper objectIdMapper
     ) {
         this.classifyDocumentIAService = classifyDocumentIAService;
         this.documentExtractDataIAStrategy = documentExtractDataIAStrategy;
         this.documentoRepository = documentoRepository;
         this.inboxRepository = inboxRepository;
+        this.outboxRepository = outboxRepository;
+        this.inboxMapper = inboxMapper;
+        this.documentoMapper = documentoMapper;
+        this.outboxMapper = outboxMapper;
         this.objectIdMapper = objectIdMapper;
     }
 
@@ -65,16 +80,21 @@ public class ProcessInboxEventService {
             delay = 30,
             delayUnit = ChronoUnit.SECONDS
     )
-    @Fallback(value = ProcessFallback.class)
+    @Fallback(value = ProcessDocumentRequestFallback.class)
     @ExponentialBackoff
     @RateLimit
     public void process(InboxDocumentProcessingRequest inbox) {
         logger.info("action=processInboxEventStart, InboxDocumentProcessingRequestEntityId={}", inbox.getId());
         inbox.processing();
-        inboxRepository.updateStatus(objectIdMapper.map(inbox.getId()), inbox.getStatus());
+        inboxRepository.persistOrUpdate(inboxMapper.toEntity(inbox));
 
-        final var patientId = inbox.getPatientId();
-        var outboxEvent = new OutboxEventEntity();
+        var patientId = inbox.getPatientId();
+
+        var outboxEvent = new OutboxDocumentResponse();
+        outboxEvent.setDocumentId(inbox.getDocumentId());
+        outboxEvent.setEventId(inbox.getEventId());
+        outboxEvent.setPatientId(patientId);
+
         String filePath = inbox.getFilePath();
 
         try {
@@ -86,27 +106,32 @@ public class ProcessInboxEventService {
                 document.setDocumentType(docType);
                 document.setPatientId(patientId);
                 document.applyDocumentDateWithFallback(inbox.getCreatedAt());
-                documentoRepository.persist(document);
-                outboxEvent.addDocumentId(document.getId());
+                var docEntity = documentoMapper.toEntity(document);
+                documentoRepository.persist(docEntity);
+                outboxEvent.addDocumentId(objectIdMapper.map(docEntity.getId()));
             }
-            outboxEvent.persist();
+            outboxRepository.persistOrUpdate(outboxMapper.toEntity(outboxEvent));
             inbox.processed();
         } catch (IOException e) {
+            inbox.failed();
             logger.error("action=readFileFailed, filePath={}, reason={}", filePath, e.getMessage());
         } catch (Exception e) {
             logger.error("action=processInboxEventError, reason={}", e.getMessage(), e);
             throw new RuntimeException(e);
         }
+        inboxRepository.persistOrUpdate(inboxMapper.toEntity(inbox));
     }
 
-    public static class ProcessFallback implements FallbackHandler<Void> {
+    @ApplicationScoped
+    public static class ProcessDocumentRequestFallback implements FallbackHandler<Void> {
 
         private final InboxDocumentProcessingRequestRepository inboxRepository;
-        private final ObjectIdMapper objectIdMapper;
+        private final InboxDocumentProcessingRequestMapper inboxMapper;
 
-        private ProcessFallback(InboxDocumentProcessingRequestRepository inboxRepository, ObjectIdMapper objectIdMapper) {
+        @Inject
+        private ProcessDocumentRequestFallback(InboxDocumentProcessingRequestRepository inboxRepository, InboxDocumentProcessingRequestMapper inboxMapper) {
             this.inboxRepository = inboxRepository;
-            this.objectIdMapper = objectIdMapper;
+            this.inboxMapper = inboxMapper;
         }
 
         @Override
@@ -122,7 +147,7 @@ public class ProcessInboxEventService {
                     inbox.failed();
                     logger.info("action=processInboxEventFallback, inboxEventId={}, documentId={}", inbox.getEventId(), inbox.getDocumentId());
                 }
-                inboxRepository.updateStatus(objectIdMapper.map(inbox.getId()), inbox.getStatus());
+                inboxRepository.persistOrUpdate(inboxMapper.toEntity(inbox));
             }
             return null;
         }

@@ -1,8 +1,8 @@
 package br.com.fiap.techchallenge.processor.domain.laudo;
 
 import lombok.Getter;
-import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 
 @Getter

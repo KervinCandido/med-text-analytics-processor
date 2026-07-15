@@ -11,18 +11,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @ApplicationScoped
-public class InboxEventProcessor {
+public class InboxDocumentRequestProcessor {
 
-    private static final Logger logger = LoggerFactory.getLogger(InboxEventProcessor.class);
+    private static final Logger logger = LoggerFactory.getLogger(InboxDocumentRequestProcessor.class);
 
     private final InboxDocumentProcessingRequestRepository inboxRepository;
     private final InboxDocumentProcessingRequestMapper mapper;
     private final ProcessDocumentRequestService processDocumentRequestService;
 
     @Inject
-    public InboxEventProcessor(InboxDocumentProcessingRequestRepository inboxRepository,
-                               InboxDocumentProcessingRequestMapper mapper,
-                               ProcessDocumentRequestService processDocumentRequestService) {
+    public InboxDocumentRequestProcessor(InboxDocumentProcessingRequestRepository inboxRepository,
+                                         InboxDocumentProcessingRequestMapper mapper,
+                                         ProcessDocumentRequestService processDocumentRequestService) {
         this.inboxRepository = inboxRepository;
         this.mapper = mapper;
         this.processDocumentRequestService = processDocumentRequestService;

@@ -1,6 +1,6 @@
 package br.com.fiap.techchallenge.processor.service.ia.exame;
 
-import br.com.fiap.techchallenge.processor.persistence.entity.exame.HemoglobinaGlicadaExameEntity;
+import br.com.fiap.techchallenge.processor.domain.exame.HemoglobinaGlicadaExame;
 import br.com.fiap.techchallenge.processor.service.ia.DocumentExtractDataIAService;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.service.SystemMessage;
@@ -42,5 +42,5 @@ public interface HemoglobinaGlicadaIAService extends DocumentExtractDataIAServic
         """
     )
     @Override
-    HemoglobinaGlicadaExameEntity extractData(Image image);
+    HemoglobinaGlicadaExame extractData(Image image);
 }

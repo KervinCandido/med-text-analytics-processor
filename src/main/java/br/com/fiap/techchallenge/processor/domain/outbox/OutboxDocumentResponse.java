@@ -12,7 +12,7 @@ import java.util.UUID;
 
 @Getter
 @Setter
-public class OutboxEvent {
+public class OutboxDocumentResponse {
 
     private String outboxId;
     private ProcessingStatus status;
@@ -22,17 +22,31 @@ public class OutboxEvent {
     private LocalDateTime createdAt;
     private List<String> documents;
 
-    public OutboxEvent() {
+    public OutboxDocumentResponse() {
         this.status = ProcessingStatus.PENDING;
         this.documents = new ArrayList<>();
         this.createdAt = LocalDateTime.now(Constants.SAO_PAULO_ZONE_ID);
     }
 
-    public void addDocument(String documentoId) {
+    public void addDocumentId(String documentoId) {
         this.documents.add(documentoId);
     }
 
     public void failed() {
-        this.status = ProcessingStatus.FAILED;
+        if (ProcessingStatus.PROCESSING.equals(this.status)) {
+            this.status = ProcessingStatus.FAILED;
+        }
+    }
+
+    public void processing() {
+        if (ProcessingStatus.PENDING.equals(this.status)) {
+            this.status = ProcessingStatus.PROCESSING;
+        }
+    }
+
+    public void processed() {
+        if (ProcessingStatus.PROCESSING.equals(this.status)) {
+            this.status = ProcessingStatus.PROCESSED;
+        }
     }
 }

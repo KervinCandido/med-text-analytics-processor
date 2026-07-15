@@ -1,12 +1,11 @@
 package br.com.fiap.techchallenge.processor.domain.laudo;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-
-
+import br.com.fiap.techchallenge.processor.domain.Documento;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import br.com.fiap.techchallenge.processor.domain.Document;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -15,10 +14,7 @@ import java.util.Optional;
 @Getter
 @Setter
 @NoArgsConstructor
-public class Laudo extends Document {
-    private String fileName;
-    private String filePath;
-    private LocalDateTime uploadedAt;
+public class Laudo extends Documento {
     
     private String laudoTipo; // e.g. UST_ABDOME_TOTAL, US_OBSTETRICO_ENDOVAGINAL, RESSONANCIA_MAGNETICA, TOMOGRAFIA_COMPUTADORIZADA, MAMOGRAFIA, ENDOSCOPIA_DIGESTIVA_ALTA, COLONOSCOPIA, etc.
     private String areaCorpo; // Área do corpo analisada (ex: Crânio, Ombro, Joelho, Coluna, Mamas, Aparelho Digestivo)

@@ -1,7 +1,13 @@
 package br.com.fiap.techchallenge.processor.service;
 
-import br.com.fiap.techchallenge.processor.persistence.entity.outbox.OutboxEventEntity;
-import br.com.fiap.techchallenge.processor.publisher.DataExtractedPublisher;
+import br.com.fiap.techchallenge.processor.domain.outbox.OutboxDocumentResponse;
+import br.com.fiap.techchallenge.processor.dto.DocumentProcessedResponseDTO;
+import br.com.fiap.techchallenge.processor.persistence.DocumentoRepository;
+import br.com.fiap.techchallenge.processor.persistence.OutboxDocumentProcessedResponseRepository;
+import br.com.fiap.techchallenge.processor.persistence.entity.DocumentoEntity;
+import br.com.fiap.techchallenge.processor.persistence.mapper.DocumentoMapper;
+import br.com.fiap.techchallenge.processor.persistence.mapper.outbox.OutboxDocumentResponseMapper;
+import br.com.fiap.techchallenge.processor.publisher.DocumentProcessedPublisher;
 import io.smallrye.faulttolerance.api.ExponentialBackoff;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -12,41 +18,65 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 @ApplicationScoped
 public class ProcessOutboxEventService {
 
-    private static final Logger logger = LoggerFactory.getLogger(ProcessInboxEventService.class);
+    private static final Logger logger = LoggerFactory.getLogger(ProcessOutboxEventService.class);
 
-    private final DataExtractedPublisher dataExtractedPublisher;
+    private final DocumentProcessedPublisher documentProcessedPublisher;
+    private final DocumentoMapper documentMapper;
+    private final DocumentoRepository documentoRepository;
+    private final OutboxDocumentProcessedResponseRepository outboxRepository;
+    private final OutboxDocumentResponseMapper outboxMapper;
 
     @Inject
-    public ProcessOutboxEventService(DataExtractedPublisher dataExtractedPublisher) {
-        this.dataExtractedPublisher = dataExtractedPublisher;
+    public ProcessOutboxEventService(DocumentProcessedPublisher documentProcessedPublisher,
+                                     DocumentoMapper documentMapper,
+                                     DocumentoRepository documentoRepository,
+                                     OutboxDocumentProcessedResponseRepository outboxRepository,
+                                     OutboxDocumentResponseMapper outboxMapper) {
+        this.documentProcessedPublisher = documentProcessedPublisher;
+        this.documentMapper = documentMapper;
+        this.documentoRepository = documentoRepository;
+        this.outboxRepository = outboxRepository;
+        this.outboxMapper = outboxMapper;
     }
 
     @Retry(
-            maxRetries = 5,
-            delay = 5,
-            delayUnit = ChronoUnit.SECONDS,
-            jitter = 150,
-            jitterDelayUnit = ChronoUnit.MILLIS
+        maxRetries = 5,
+        delay = 5,
+        delayUnit = ChronoUnit.SECONDS,
+        jitter = 150,
+        jitterDelayUnit = ChronoUnit.MILLIS
     )
     @CircuitBreaker(
-            requestVolumeThreshold = 4,
-            failureRatio = 0.4,
-            delay = 30,
-            delayUnit = ChronoUnit.SECONDS
+        requestVolumeThreshold = 4,
+        failureRatio = 0.4,
+        delay = 30,
+        delayUnit = ChronoUnit.SECONDS
     )
     @Fallback(fallbackMethod = "processFallback")
     @ExponentialBackoff
-    public void process(OutboxEventEntity outboxEvent) {
+    public void process(OutboxDocumentResponse outboxEvent) {
         logger.info("action=processOutboxEvent, outboxEventId={}", outboxEvent.getOutboxId());
-        outboxEvent.getDocuments().forEach(dataExtractedPublisher::publish);
+        outboxEvent.processing();
+        var outboxEntity = outboxMapper.toEntity(outboxEvent);
+        outboxRepository.persistOrUpdate(outboxEntity);
+        List<DocumentoEntity> documentos = documentoRepository.buscaDocumentosPorIds(outboxEntity.getDocuments());
+
+        documentos.stream()
+                .map(documentMapper::toDomain)
+                .map(d -> new DocumentProcessedResponseDTO(outboxEvent.getEventId(), outboxEvent.getDocumentId(), outboxEvent.getPatientId(), d))
+                .forEach(documentProcessedPublisher::publish);
+        outboxEvent.processed();
+
+        outboxRepository.persistOrUpdate(outboxMapper.toEntity(outboxEvent));
     }
 
-    public void processFallback(OutboxEventEntity outboxEvent) {
+    public void processFallback(OutboxDocumentResponse outboxEvent) {
         outboxEvent.failed();
-        outboxEvent.persistOrUpdate();
+        outboxRepository.persistOrUpdate(outboxMapper.toEntity(outboxEvent));
     }
 }

@@ -1,12 +1,11 @@
 package br.com.fiap.techchallenge.processor.domain.relatorio;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-
-
+import br.com.fiap.techchallenge.processor.domain.Documento;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import br.com.fiap.techchallenge.processor.domain.Document;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -15,11 +14,7 @@ import java.util.Optional;
 @Getter
 @Setter
 @NoArgsConstructor
-public class Relatorio extends Document {
-    private String fileName;
-    private String filePath;
-    private LocalDateTime uploadedAt;
-    
+public class Relatorio extends Documento {
     private String historicoClinico;     // Anamnese, tempo de evolução, tratamentos prévios
     private String diagnostico;          // Descrição da patologia/lesão
     private String cid;                   // Código CID

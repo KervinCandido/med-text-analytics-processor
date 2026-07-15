@@ -1,22 +1,17 @@
 package br.com.fiap.techchallenge.processor.domain.registro_atendimento;
 
+import br.com.fiap.techchallenge.processor.domain.Documento;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-
-import br.com.fiap.techchallenge.processor.domain.Document;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Getter
 @Setter
 @NoArgsConstructor
-public class RegistroAtendimento extends Document {
-    private String fileName;
-    private String filePath;
-    private LocalDateTime uploadedAt;
-    
+public class RegistroAtendimento extends Documento {
     private String paciente;
     private String medico;
     private LocalDateTime dataAtendimento;

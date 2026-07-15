@@ -1,13 +1,14 @@
 package br.com.fiap.techchallenge.processor.persistence.entity.laudo;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-
-
 import io.quarkus.mongodb.panache.common.MongoEntity;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.bson.codecs.pojo.annotations.BsonDiscriminator;
 
-@MongoEntity(collection = "laudos")
+
+@BsonDiscriminator
+@MongoEntity(collection = "documentos")
 @Getter
 @Setter
 @NoArgsConstructor

@@ -1,6 +1,5 @@
-package br.com.fiap.techchallenge.processor.dto;
+package br.com.fiap.techchallenge.processor.domain;
 
-import br.com.fiap.techchallenge.processor.domain.DocumentType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,6 +11,6 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class DocumentMetaDataDTO {
+public class DocumentMetaData {
     private List<DocumentType> classifications;
 }

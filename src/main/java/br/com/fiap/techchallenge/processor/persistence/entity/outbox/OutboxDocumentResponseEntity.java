@@ -16,7 +16,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @MongoEntity(collection = "outbox")
-public class OutboxEventEntity {
+public class OutboxDocumentResponseEntity {
 
     @BsonId
     private ObjectId outboxId;
@@ -27,17 +27,9 @@ public class OutboxEventEntity {
     private LocalDateTime createdAt;
     private List<ObjectId> documents;
 
-    public OutboxEventEntity() {
+    public OutboxDocumentResponseEntity() {
         this.status = ProcessingStatus.PENDING;
         this.documents = new ArrayList<>();
         this.createdAt = LocalDateTime.now(Constants.SAO_PAULO_ZONE_ID);
-    }
-
-    public void addDocumentId(ObjectId docObjectId) {
-        this.documents.add(docObjectId);
-    }
-
-    public void failed() {
-        this.status = ProcessingStatus.FAILED;
     }
 }

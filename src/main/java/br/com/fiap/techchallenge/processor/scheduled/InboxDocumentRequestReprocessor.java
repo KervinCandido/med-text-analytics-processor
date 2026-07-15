@@ -11,9 +11,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @ApplicationScoped
-public class InboxDocumentProcessingRequestReprocessor {
+public class InboxDocumentRequestReprocessor {
 
-    private static final Logger logger = LoggerFactory.getLogger(InboxDocumentProcessingRequestReprocessor.class);
+    private static final Logger logger = LoggerFactory.getLogger(InboxDocumentRequestReprocessor.class);
 
     private final ProcessDocumentRequestService processDocumentRequestService;
     private final InboxDocumentProcessingRequestMapper mapper;
@@ -21,9 +21,9 @@ public class InboxDocumentProcessingRequestReprocessor {
 
 
     @Inject
-    public InboxDocumentProcessingRequestReprocessor(ProcessDocumentRequestService processDocumentRequestService,
-                                                     InboxDocumentProcessingRequestMapper mapper,
-                                                     InboxDocumentProcessingRequestRepository inboxRepository) {
+    public InboxDocumentRequestReprocessor(ProcessDocumentRequestService processDocumentRequestService,
+                                           InboxDocumentProcessingRequestMapper mapper,
+                                           InboxDocumentProcessingRequestRepository inboxRepository) {
         this.processDocumentRequestService = processDocumentRequestService;
         this.mapper = mapper;
         this.inboxRepository = inboxRepository;

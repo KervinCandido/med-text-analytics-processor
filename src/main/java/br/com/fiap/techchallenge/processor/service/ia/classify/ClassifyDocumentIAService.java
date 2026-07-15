@@ -1,6 +1,6 @@
 package br.com.fiap.techchallenge.processor.service.ia.classify;
 
-import br.com.fiap.techchallenge.processor.dto.DocumentMetaDataDTO;
+import br.com.fiap.techchallenge.processor.domain.DocumentMetaData;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
@@ -47,5 +47,5 @@ public interface ClassifyDocumentIAService {
         Extraia as informações necessárias e classifique o documento preenchendo os campos solicitados.
         """
     )
-    DocumentMetaDataDTO classifyDocument(Image image);
+    DocumentMetaData classifyDocument(Image image);
 }

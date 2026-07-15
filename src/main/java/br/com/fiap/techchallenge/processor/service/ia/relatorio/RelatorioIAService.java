@@ -1,6 +1,6 @@
 package br.com.fiap.techchallenge.processor.service.ia.relatorio;
 
-import br.com.fiap.techchallenge.processor.domain.relatorio.Relatorio;
+import br.com.fiap.techchallenge.processor.persistence.entity.relatorio.RelatorioEntity;
 import br.com.fiap.techchallenge.processor.service.ia.DocumentExtractDataIAService;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.service.SystemMessage;
@@ -43,5 +43,5 @@ public interface RelatorioIAService extends DocumentExtractDataIAService {
         """
     )
     @Override
-    Relatorio extractData(Image image);
+    RelatorioEntity extractData(Image image);
 }

@@ -1,6 +1,6 @@
 package br.com.fiap.techchallenge.processor.service.ia.encaminhamento;
 
-import br.com.fiap.techchallenge.processor.domain.encaminhamento.Encaminhamento;
+import br.com.fiap.techchallenge.processor.persistence.entity.encaminhamento.EncaminhamentoEntity;
 import br.com.fiap.techchallenge.processor.service.ia.DocumentExtractDataIAService;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.service.SystemMessage;
@@ -42,5 +42,5 @@ public interface EncaminhamentoIAService extends DocumentExtractDataIAService {
         """
     )
     @Override
-    Encaminhamento extractData(Image image);
+    EncaminhamentoEntity extractData(Image image);
 }

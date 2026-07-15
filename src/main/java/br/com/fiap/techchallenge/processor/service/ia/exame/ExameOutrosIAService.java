@@ -1,6 +1,6 @@
 package br.com.fiap.techchallenge.processor.service.ia.exame;
 
-import br.com.fiap.techchallenge.processor.domain.exame.Exame;
+import br.com.fiap.techchallenge.processor.persistence.entity.exame.ExameEntity;
 import br.com.fiap.techchallenge.processor.service.ia.DocumentExtractDataIAService;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.service.SystemMessage;
@@ -39,5 +39,5 @@ public interface ExameOutrosIAService extends DocumentExtractDataIAService {
         """
     )
     @Override
-    Exame extractData(Image image);
+    ExameEntity extractData(Image image);
 }

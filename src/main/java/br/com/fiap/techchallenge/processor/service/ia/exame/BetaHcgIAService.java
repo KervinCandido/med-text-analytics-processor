@@ -1,6 +1,6 @@
 package br.com.fiap.techchallenge.processor.service.ia.exame;
 
-import br.com.fiap.techchallenge.processor.domain.exame.BetaHcgExame;
+import br.com.fiap.techchallenge.processor.persistence.entity.exame.BetaHcgExameEntity;
 import br.com.fiap.techchallenge.processor.service.ia.DocumentExtractDataIAService;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.service.SystemMessage;
@@ -43,5 +43,5 @@ public interface BetaHcgIAService extends DocumentExtractDataIAService {
         """
     )
     @Override
-    BetaHcgExame extractData(Image image);
+    BetaHcgExameEntity extractData(Image image);
 }

@@ -1,6 +1,6 @@
 package br.com.fiap.techchallenge.processor.service.ia.receita;
 
-import br.com.fiap.techchallenge.processor.domain.receita.Receita;
+import br.com.fiap.techchallenge.processor.persistence.entity.receita.ReceitaEntity;
 import br.com.fiap.techchallenge.processor.service.ia.DocumentExtractDataIAService;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.service.SystemMessage;
@@ -46,5 +46,5 @@ public interface ReceitaIAService extends DocumentExtractDataIAService {
         """
     )
     @Override
-    Receita extractData(Image image);
+    ReceitaEntity extractData(Image image);
 }

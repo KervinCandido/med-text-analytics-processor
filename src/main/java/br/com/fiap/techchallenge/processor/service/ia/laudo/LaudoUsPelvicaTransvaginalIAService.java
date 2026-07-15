@@ -1,6 +1,6 @@
 package br.com.fiap.techchallenge.processor.service.ia.laudo;
 
-import br.com.fiap.techchallenge.processor.domain.laudo.Laudo;
+import br.com.fiap.techchallenge.processor.persistence.entity.laudo.LaudoEntity;
 import br.com.fiap.techchallenge.processor.service.ia.DocumentExtractDataIAService;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.service.SystemMessage;
@@ -40,5 +40,5 @@ public interface LaudoUsPelvicaTransvaginalIAService extends DocumentExtractData
         """
     )
     @Override
-    Laudo extractData(Image image);
+    LaudoEntity extractData(Image image);
 }

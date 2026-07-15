@@ -1,6 +1,6 @@
 package br.com.fiap.techchallenge.processor.service;
 
-import br.com.fiap.techchallenge.processor.domain.outbox.OutboxEvent;
+import br.com.fiap.techchallenge.processor.persistence.entity.outbox.OutboxEventEntity;
 import br.com.fiap.techchallenge.processor.publisher.DataExtractedPublisher;
 import io.smallrye.faulttolerance.api.ExponentialBackoff;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -40,12 +40,12 @@ public class ProcessOutboxEventService {
     )
     @Fallback(fallbackMethod = "processFallback")
     @ExponentialBackoff
-    public void process(OutboxEvent outboxEvent) {
+    public void process(OutboxEventEntity outboxEvent) {
         logger.info("action=processOutboxEvent, outboxEventId={}", outboxEvent.getOutboxId());
         outboxEvent.getDocuments().forEach(dataExtractedPublisher::publish);
     }
 
-    public void processFallback(OutboxEvent outboxEvent) {
+    public void processFallback(OutboxEventEntity outboxEvent) {
         outboxEvent.failed();
         outboxEvent.persistOrUpdate();
     }

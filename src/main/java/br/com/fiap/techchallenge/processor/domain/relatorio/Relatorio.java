@@ -7,12 +7,10 @@ import lombok.NoArgsConstructor;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import br.com.fiap.techchallenge.processor.domain.Document;
-import io.quarkus.mongodb.panache.common.MongoEntity;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-@MongoEntity(collection = "relatorios")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Getter
 @Setter

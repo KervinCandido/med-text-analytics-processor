@@ -1,6 +1,6 @@
 package br.com.fiap.techchallenge.processor.service.ia.outros;
 
-import br.com.fiap.techchallenge.processor.domain.outros.Outros;
+import br.com.fiap.techchallenge.processor.persistence.entity.outros.OutrosEntity;
 import br.com.fiap.techchallenge.processor.service.ia.DocumentExtractDataIAService;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.service.SystemMessage;
@@ -32,5 +32,5 @@ public interface OutrosIAService extends DocumentExtractDataIAService {
         """
     )
     @Override
-    Outros extractData(Image image);
+    OutrosEntity extractData(Image image);
 }

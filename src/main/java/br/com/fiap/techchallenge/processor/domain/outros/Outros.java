@@ -6,11 +6,9 @@ import lombok.NoArgsConstructor;
 
 
 import br.com.fiap.techchallenge.processor.domain.Document;
-import io.quarkus.mongodb.panache.common.MongoEntity;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-@MongoEntity(collection = "outros")
 @Getter
 @Setter
 @NoArgsConstructor

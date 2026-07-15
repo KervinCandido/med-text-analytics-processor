@@ -5,9 +5,6 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 
 
-import io.quarkus.mongodb.panache.common.MongoEntity;
-
-@MongoEntity(collection = "laudos")
 @Getter
 @Setter
 @NoArgsConstructor

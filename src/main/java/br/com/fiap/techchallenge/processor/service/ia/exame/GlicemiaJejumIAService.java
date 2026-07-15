@@ -1,6 +1,6 @@
 package br.com.fiap.techchallenge.processor.service.ia.exame;
 
-import br.com.fiap.techchallenge.processor.domain.exame.GlicemiaJejumExame;
+import br.com.fiap.techchallenge.processor.persistence.entity.exame.GlicemiaJejumExameEntity;
 import br.com.fiap.techchallenge.processor.service.ia.DocumentExtractDataIAService;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.service.SystemMessage;
@@ -42,5 +42,5 @@ public interface GlicemiaJejumIAService extends DocumentExtractDataIAService {
         """
     )
     @Override
-    GlicemiaJejumExame extractData(Image image);
+    GlicemiaJejumExameEntity extractData(Image image);
 }

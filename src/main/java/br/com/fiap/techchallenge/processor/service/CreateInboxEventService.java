@@ -1,7 +1,7 @@
 package br.com.fiap.techchallenge.processor.service;
 
 import br.com.fiap.techchallenge.processor.dto.InboxEventDTO;
-import br.com.fiap.techchallenge.processor.domain.inbox.InboxEvent;
+import br.com.fiap.techchallenge.processor.persistence.entity.inbox.InboxEventEntity;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +12,7 @@ public class CreateInboxEventService {
     private static final Logger logger = LoggerFactory.getLogger(CreateInboxEventService.class);
 
     public void create(InboxEventDTO inboxEventDTO) {
-        InboxEvent inboxEvent = new InboxEvent();
+        InboxEventEntity inboxEvent = new InboxEventEntity();
         inboxEvent.setEventId(String.valueOf(inboxEventDTO.eventId()));
         inboxEvent.setDocumentId(String.valueOf(inboxEventDTO.documentId()));
         inboxEvent.setPatientId(String.valueOf(inboxEventDTO.patientId()));

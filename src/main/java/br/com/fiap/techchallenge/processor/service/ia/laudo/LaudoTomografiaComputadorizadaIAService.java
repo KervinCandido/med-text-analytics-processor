@@ -1,6 +1,6 @@
 package br.com.fiap.techchallenge.processor.service.ia.laudo;
 
-import br.com.fiap.techchallenge.processor.domain.laudo.Laudo;
+import br.com.fiap.techchallenge.processor.persistence.entity.laudo.LaudoEntity;
 import br.com.fiap.techchallenge.processor.service.ia.DocumentExtractDataIAService;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.service.SystemMessage;
@@ -19,7 +19,7 @@ import io.quarkiverse.langchain4j.RegisterAiService;
     Analise este laudo de exame de Tomografia Computadorizada (TC) em português e extraia as seguintes informações no formato JSON:
     {
       "areaCorpo": "Região ou área do corpo analisada (ex: Tórax, Abdome Total, Crânio, Seios da Face)",
-      "tecnica": "Técnica do exame, indicando a metodologia de aquisição de imagens e o uso de contraste iodado (ex: Exame realizado com cortes finos multiplanares helicoidais, sem e com administração de contraste iodado endovenoso)",
+      "tecnica": "Técnica do exame, indicando a metodologia de aquisição de imagens e o uso de contraste iodado (ex: ExameEntity realizado com cortes finos multiplanares helicoidais, sem e com administração de contraste iodado endovenoso)",
       "descricaoAnatomica": "Relato detalhado da morfologia, atenuação/densidade, contornos e aspecto anatômico das estruturas e órgãos analisados",
       "achadosNormais": "Confirmação das estruturas corporais que se apresentam normais e sem alterações estruturais ou de atenuação",
       "achadosPatologicos": "Descrição minuciosa de qualquer lesão, nódulo, consolidação pulmonar, derrame pleural, cisto, cálculo ou anomalia encontrada, incluindo as suas medidas e localização exata",
@@ -42,5 +42,5 @@ public interface LaudoTomografiaComputadorizadaIAService extends DocumentExtract
         """
     )
     @Override
-    Laudo extractData(Image image);
+    LaudoEntity extractData(Image image);
 }

@@ -37,11 +37,6 @@
     </dependencyManagement>
 
     <dependencies>
-        <dependency>
-            <groupId>br.com.fiap.techchallenge</groupId>
-            <artifactId>med-text-analytics-common</artifactId>
-            <version>1.0.0</version>
-        </dependency>
         <!-- REST & JSON -->
         <dependency>
             <groupId>io.quarkus</groupId>

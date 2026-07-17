@@ -13,13 +13,13 @@ COPY .mvn /code/.mvn
 COPY pom.xml /code/pom.xml
 
 # Baixa as dependências (evita baixar tudo de novo se o pom.xml não mudou)
-RUN ./mvnw dependency:go-offline -B
+RUN mvn dependency:go-offline -B
 
 # Copia o código fonte da sua aplicação
 COPY src /code/src
 
 # Executa o build empacotando o JAR da aplicação (pulando testes)
-RUN ./mvnw package -DskipTests -B
+RUN mvn package -DskipTests -B
 
 # ==========================================
 # ETAPA 2: Imagem Final de Execução (Runtime)
@@ -46,4 +46,4 @@ EXPOSE 8080
 # Variáveis de ambiente para o Quarkus rodar correto no container
 ENV JAVA_APP_JAR="/work/quarkus-run.jar"
 
-ENTRYPOINT ["java", "-jar", "/work/quarkus-run.jar", "-Dquarkus.http.host=0.0.0.0"]
+ENTRYPOINT ["java", "-Dquarkus.http.host=0.0.0.0", "-jar", "/work/quarkus-run.jar"]

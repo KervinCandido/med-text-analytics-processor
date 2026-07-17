@@ -21,4 +21,36 @@ public abstract class Documento {
     public void applyDocumentDateWithFallback(LocalDateTime dateTime) {
         this.documentDate = resolveDocumentDate().orElse(dateTime);
     }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public UUID getPatientId() {
+        return patientId;
+    }
+
+    public void setPatientId(UUID patientId) {
+        this.patientId = patientId;
+    }
+
+    public DocumentType getDocumentType() {
+        return documentType;
+    }
+
+    public void setDocumentType(DocumentType documentType) {
+        this.documentType = documentType;
+    }
+
+    public LocalDateTime getDocumentDate() {
+        return documentDate;
+    }
+
+    public void setDocumentDate(LocalDateTime documentDate) {
+        this.documentDate = documentDate;
+    }
 }

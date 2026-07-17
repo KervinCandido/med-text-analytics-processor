@@ -15,9 +15,6 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 public class RegistroAtendimentoEntity extends DocumentoEntity {
-    private String fileName;
-    private String filePath;
-    private LocalDateTime uploadedAt;
     private String paciente;
     private String medico;
     private LocalDateTime dataAtendimento;

@@ -43,6 +43,7 @@ public class ProcessDocumentRequestService {
     private final DocumentoMapper documentoMapper;
     private final OutboxDocumentResponseMapper outboxMapper;
     private final ObjectIdMapper objectIdMapper;
+    private final NextcloudStorageService nextcloudStorageService;
 
     @Inject
     public ProcessDocumentRequestService(
@@ -54,7 +55,7 @@ public class ProcessDocumentRequestService {
             InboxDocumentProcessingRequestMapper inboxMapper,
             DocumentoMapper documentoMapper,
             OutboxDocumentResponseMapper outboxMapper,
-            ObjectIdMapper objectIdMapper
+            ObjectIdMapper objectIdMapper, NextcloudStorageService nextcloudStorageService
     ) {
         this.classifyDocumentIAService = classifyDocumentIAService;
         this.documentExtractDataIAStrategy = documentExtractDataIAStrategy;
@@ -65,6 +66,7 @@ public class ProcessDocumentRequestService {
         this.documentoMapper = documentoMapper;
         this.outboxMapper = outboxMapper;
         this.objectIdMapper = objectIdMapper;
+        this.nextcloudStorageService = nextcloudStorageService;
     }
 
     @Retry(
@@ -98,8 +100,7 @@ public class ProcessDocumentRequestService {
         String filePath = inbox.getFilePath();
 
         try {
-            Path path = Paths.get(filePath);
-            Image image = buildImage(path, filePath);
+            Image image = buildImage(filePath);
             var documentMetaDataDTO = classifyDocumentIAService.classifyDocument(image);
             for (DocumentType docType : documentMetaDataDTO.getClassifications()) {
                 var document = documentExtractDataIAStrategy.get(docType).extractData(image);
@@ -153,8 +154,8 @@ public class ProcessDocumentRequestService {
         }
     }
 
-    private Image buildImage(Path path, String filePath) throws IOException {
-        byte[] fileContent = Files.readAllBytes(path);
+    private Image buildImage(String filePath) throws IOException {
+        byte[] fileContent = nextcloudStorageService.load(filePath);
         String base64Image = Base64.getEncoder().encodeToString(fileContent);
         String mimeType = getMimeType(filePath);
         return Image.builder()

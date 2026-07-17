@@ -1,5 +1,23 @@
-*
-!target/*-runner
-!target/*-runner.jar
-!target/lib/*
-!target/quarkus-app/*
+# Ignorar pastas de build locais e temporárias
+target/
+build/
+bin/
+
+# Ignorar pastas de ferramentas de desenvolvimento e IDEs
+.idea/
+.vscode/
+.settings/
+.classpath
+.project
+*.iml
+*.ipr
+*.iws
+
+# Ignorar logs e arquivos do sistema operacional
+*.log
+.DS_Store
+Thumbs.db
+
+# Ignorar controle de versão
+.git/
+.gitignore

@@ -1,23 +1,17 @@
-# Ignorar pastas de build locais e temporárias
-target/
-build/
-bin/
+.git
+.github
+.idea
+.vscode
 
-# Ignorar pastas de ferramentas de desenvolvimento e IDEs
-.idea/
-.vscode/
-.settings/
-.classpath
-.project
-*.iml
-*.ipr
-*.iws
+target
+build
+bin
+scratch
 
-# Ignorar logs e arquivos do sistema operacional
+.env
+.env.*
 *.log
+*.iml
+
 .DS_Store
 Thumbs.db
-
-# Ignorar controle de versão
-.git/
-.gitignore

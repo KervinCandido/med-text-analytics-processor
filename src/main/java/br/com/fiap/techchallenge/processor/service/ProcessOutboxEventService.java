@@ -1,5 +1,6 @@
 package br.com.fiap.techchallenge.processor.service;
 
+import br.com.fiap.techchallenge.processor.domain.ProcessingStatus;
 import br.com.fiap.techchallenge.processor.domain.outbox.OutboxDocumentResponse;
 import br.com.fiap.techchallenge.processor.dto.DocumentProcessedResponseDTO;
 import br.com.fiap.techchallenge.processor.persistence.DocumentoRepository;
@@ -64,12 +65,36 @@ public class ProcessOutboxEventService {
         outboxEvent.processing();
         var outboxEntity = outboxMapper.toEntity(outboxEvent);
         outboxRepository.persistOrUpdate(outboxEntity);
-        List<DocumentoEntity> documentos = documentoRepository.buscaDocumentosPorIds(outboxEntity.getDocuments());
+        if (outboxEvent.isFailedResponse()) {
+            DocumentProcessedResponseDTO failedResponse =
+                    new DocumentProcessedResponseDTO(
+                            outboxEvent.getEventId(),
+                            outboxEvent.getDocumentId(),
+                            outboxEvent.getPatientId(),
+                            ProcessingStatus.FAILED.name(),
+                            null,
+                            outboxEvent.getErrorDetail()
+                    );
 
-        documentos.stream()
-                .map(documentMapper::toDomain)
-                .map(d -> new DocumentProcessedResponseDTO(outboxEvent.getEventId(), outboxEvent.getDocumentId(), outboxEvent.getPatientId(), d))
-                .forEach(documentProcessedPublisher::publish);
+            documentProcessedPublisher.publish(failedResponse);
+        } else {
+            List<DocumentoEntity> documentos =
+                    documentoRepository.buscaDocumentosPorIds(
+                            outboxEntity.getDocuments()
+                    );
+
+            documentos.stream()
+                    .map(documentMapper::toDomain)
+                    .map(document -> new DocumentProcessedResponseDTO(
+                            outboxEvent.getEventId(),
+                            outboxEvent.getDocumentId(),
+                            outboxEvent.getPatientId(),
+                            ProcessingStatus.PROCESSED.name(),
+                            document,
+                            null
+                    ))
+                    .forEach(documentProcessedPublisher::publish);
+        }
         outboxEvent.processed();
 
         outboxRepository.persistOrUpdate(outboxMapper.toEntity(outboxEvent));

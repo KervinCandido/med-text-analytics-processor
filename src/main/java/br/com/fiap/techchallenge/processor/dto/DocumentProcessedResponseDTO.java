@@ -4,5 +4,12 @@ import br.com.fiap.techchallenge.processor.domain.Documento;
 
 import java.util.UUID;
 
-public record DocumentProcessedResponseDTO(UUID eventId, UUID documentId, UUID patientId, Documento document) {}
-
+public record DocumentProcessedResponseDTO(
+        UUID eventId,
+        UUID documentId,
+        UUID patientId,
+        String status,
+        Documento document,
+        String errorDetail
+) {
+}

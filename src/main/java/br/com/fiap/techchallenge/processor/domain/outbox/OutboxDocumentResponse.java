@@ -15,21 +15,50 @@ import java.util.UUID;
 public class OutboxDocumentResponse {
 
     private String outboxId;
+
+    /*
+     * Estado de entrega do evento de Outbox:
+     * PENDING, PROCESSING, PROCESSED ou FAILED.
+     */
     private ProcessingStatus status;
+
+    /*
+     * Estado do processamento do documento que será comunicado
+     * ao Patient Document Service: PROCESSED ou FAILED.
+     */
+    private ProcessingStatus responseStatus;
+
     private UUID eventId;
     private UUID documentId;
     private UUID patientId;
     private LocalDateTime createdAt;
     private List<String> documents;
+    private String errorDetail;
 
     public OutboxDocumentResponse() {
         this.status = ProcessingStatus.PENDING;
+        this.responseStatus = ProcessingStatus.PROCESSED;
         this.documents = new ArrayList<>();
         this.createdAt = LocalDateTime.now(Constants.SAO_PAULO_ZONE_ID);
     }
 
     public void addDocumentId(String documentoId) {
         this.documents.add(documentoId);
+    }
+
+    public void markSuccessfulResponse() {
+        this.responseStatus = ProcessingStatus.PROCESSED;
+        this.errorDetail = null;
+    }
+
+    public void markFailedResponse(String errorDetail) {
+        this.responseStatus = ProcessingStatus.FAILED;
+        this.errorDetail = errorDetail;
+        this.documents.clear();
+    }
+
+    public boolean isFailedResponse() {
+        return ProcessingStatus.FAILED.equals(responseStatus);
     }
 
     public void failed() {

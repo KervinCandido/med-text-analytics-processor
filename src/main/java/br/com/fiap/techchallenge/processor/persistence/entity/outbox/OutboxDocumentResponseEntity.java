@@ -20,15 +20,19 @@ public class OutboxDocumentResponseEntity {
 
     @BsonId
     private ObjectId outboxId;
+
     private ProcessingStatus status;
+    private ProcessingStatus responseStatus;
     private UUID eventId;
     private UUID documentId;
     private UUID patientId;
     private LocalDateTime createdAt;
     private List<ObjectId> documents;
+    private String errorDetail;
 
     public OutboxDocumentResponseEntity() {
         this.status = ProcessingStatus.PENDING;
+        this.responseStatus = ProcessingStatus.PROCESSED;
         this.documents = new ArrayList<>();
         this.createdAt = LocalDateTime.now(Constants.SAO_PAULO_ZONE_ID);
     }

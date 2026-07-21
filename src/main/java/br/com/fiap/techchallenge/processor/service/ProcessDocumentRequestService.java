@@ -1,6 +1,7 @@
 package br.com.fiap.techchallenge.processor.service;
 
 import br.com.fiap.techchallenge.processor.domain.DocumentType;
+import br.com.fiap.techchallenge.processor.domain.ProcessingStatus;
 import br.com.fiap.techchallenge.processor.domain.inbox.InboxDocumentProcessingRequest;
 import br.com.fiap.techchallenge.processor.domain.outbox.OutboxDocumentResponse;
 import br.com.fiap.techchallenge.processor.persistence.DocumentoRepository;
@@ -13,26 +14,29 @@ import br.com.fiap.techchallenge.processor.persistence.mapper.outbox.OutboxDocum
 import br.com.fiap.techchallenge.processor.service.ia.DocumentExtractDataIAStrategy;
 import br.com.fiap.techchallenge.processor.service.ia.classify.ClassifyDocumentIAService;
 import dev.langchain4j.data.image.Image;
-import io.smallrye.faulttolerance.api.ExponentialBackoff;
-import io.smallrye.faulttolerance.api.RateLimit;
-import io.smallrye.faulttolerance.api.RateLimitException;
+import dev.langchain4j.exception.RateLimitException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.faulttolerance.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 
 @ApplicationScoped
 public class ProcessDocumentRequestService {
 
-    private static final Logger logger = LoggerFactory.getLogger(ProcessDocumentRequestService.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(ProcessDocumentRequestService.class);
+
+    private static final String STORAGE_READ_ERROR =
+            "STORAGE_READ_ERROR";
+
+    private static final String AI_QUOTA_EXCEEDED =
+            "AI_QUOTA_EXCEEDED";
+
+    private static final String AI_PROCESSING_ERROR =
+            "AI_PROCESSING_ERROR";
 
     private final ClassifyDocumentIAService classifyDocumentIAService;
     private final DocumentExtractDataIAStrategy documentExtractDataIAStrategy;
@@ -55,7 +59,8 @@ public class ProcessDocumentRequestService {
             InboxDocumentProcessingRequestMapper inboxMapper,
             DocumentoMapper documentoMapper,
             OutboxDocumentResponseMapper outboxMapper,
-            ObjectIdMapper objectIdMapper, NextcloudStorageService nextcloudStorageService
+            ObjectIdMapper objectIdMapper,
+            NextcloudStorageService nextcloudStorageService
     ) {
         this.classifyDocumentIAService = classifyDocumentIAService;
         this.documentExtractDataIAStrategy = documentExtractDataIAStrategy;
@@ -69,105 +74,209 @@ public class ProcessDocumentRequestService {
         this.nextcloudStorageService = nextcloudStorageService;
     }
 
-    @Retry(
-            maxRetries = 5,
-            delay = 5,
-            delayUnit = ChronoUnit.SECONDS,
-            jitter = 150,
-            jitterDelayUnit = ChronoUnit.MILLIS
-    )
-    @CircuitBreaker(
-            requestVolumeThreshold = 4,
-            failureRatio = 0.4,
-            delay = 30,
-            delayUnit = ChronoUnit.SECONDS
-    )
-    @Fallback(value = ProcessDocumentRequestFallback.class)
-    @ExponentialBackoff
-    @RateLimit
     public void process(InboxDocumentProcessingRequest inbox) {
-        logger.info("action=processInboxEventStart, InboxDocumentProcessingRequestEntityId={}", inbox.getId());
+        logger.info(
+                "action=processInboxEventStart, inboxEventId={}, documentId={}",
+                inbox.getEventId(),
+                inbox.getDocumentId()
+        );
+
         inbox.processing();
-        inboxRepository.persistOrUpdate(inboxMapper.toEntity(inbox));
 
-        var patientId = inbox.getPatientId();
+        inboxRepository.persistOrUpdate(
+                inboxMapper.toEntity(inbox)
+        );
 
-        var outboxEvent = new OutboxDocumentResponse();
-        outboxEvent.setDocumentId(inbox.getDocumentId());
-        outboxEvent.setEventId(inbox.getEventId());
-        outboxEvent.setPatientId(patientId);
+        OutboxDocumentResponse outboxEvent =
+                createOutboxEvent(inbox);
 
         String filePath = inbox.getFilePath();
 
         try {
             Image image = buildImage(filePath);
-            var documentMetaDataDTO = classifyDocumentIAService.classifyDocument(image);
-            for (DocumentType docType : documentMetaDataDTO.getClassifications()) {
-                var document = documentExtractDataIAStrategy.get(docType).extractData(image);
-                document.setDocumentType(docType);
-                document.setPatientId(patientId);
-                document.applyDocumentDateWithFallback(inbox.getCreatedAt());
-                var docEntity = documentoMapper.toEntity(document);
-                documentoRepository.persist(docEntity);
-                outboxEvent.addDocumentId(objectIdMapper.map(docEntity.getId()));
+
+            var documentMetaData =
+                    classifyDocumentIAService.classifyDocument(image);
+
+            for (DocumentType documentType
+                    : documentMetaData.getClassifications()) {
+
+                var document = documentExtractDataIAStrategy
+                        .get(documentType)
+                        .extractData(image);
+
+                document.setDocumentType(documentType);
+                document.setPatientId(inbox.getPatientId());
+                document.applyDocumentDateWithFallback(
+                        inbox.getCreatedAt()
+                );
+
+                var documentEntity =
+                        documentoMapper.toEntity(document);
+
+                documentoRepository.persist(documentEntity);
+
+                outboxEvent.addDocumentId(
+                        objectIdMapper.map(documentEntity.getId())
+                );
             }
-            outboxRepository.persistOrUpdate(outboxMapper.toEntity(outboxEvent));
+
+            outboxEvent.markSuccessfulResponse();
+
+            outboxRepository.persistOrUpdate(
+                    outboxMapper.toEntity(outboxEvent)
+            );
+
             inbox.processed();
-        } catch (IOException e) {
-            inbox.failed();
-            logger.error("action=readFileFailed, filePath={}, reason={}", filePath, e.getMessage());
-        } catch (Exception e) {
-            logger.error("action=processInboxEventError, reason={}", e.getMessage(), e);
-            throw new RuntimeException(e);
+
+            logger.info(
+                    "action=processInboxEventSuccess, eventId={}, documentId={}",
+                    inbox.getEventId(),
+                    inbox.getDocumentId()
+            );
+        } catch (IOException exception) {
+            registerRetriableFailure(
+                    inbox,
+                    outboxEvent,
+                    STORAGE_READ_ERROR,
+                    "Não foi possível ler o arquivo armazenado."
+            );
+
+            logger.error(
+                    "action=readFileFailed, eventId={}, documentId={}, reason={}",
+                    inbox.getEventId(),
+                    inbox.getDocumentId(),
+                    exception.getMessage()
+            );
+        } catch (RateLimitException exception) {
+            registerPermanentFailure(
+                    inbox,
+                    outboxEvent,
+                    AI_QUOTA_EXCEEDED,
+                    "O limite de uso do serviço de inteligência artificial foi excedido."
+            );
+
+            logger.warn(
+                    "action=aiQuotaExceeded, eventId={}, documentId={}",
+                    inbox.getEventId(),
+                    inbox.getDocumentId()
+            );
+        } catch (Exception exception) {
+            registerRetriableFailure(
+                    inbox,
+                    outboxEvent,
+                    AI_PROCESSING_ERROR,
+                    "Não foi possível processar o documento pela inteligência artificial."
+            );
+
+            logger.error(
+                    "action=processInboxEventError, eventId={}, documentId={}, reason={}",
+                    inbox.getEventId(),
+                    inbox.getDocumentId(),
+                    exception.getMessage(),
+                    exception
+            );
+        } finally {
+            inboxRepository.persistOrUpdate(
+                    inboxMapper.toEntity(inbox)
+            );
         }
-        inboxRepository.persistOrUpdate(inboxMapper.toEntity(inbox));
     }
 
-    @ApplicationScoped
-    public static class ProcessDocumentRequestFallback implements FallbackHandler<Void> {
+    private OutboxDocumentResponse createOutboxEvent(
+            InboxDocumentProcessingRequest inbox
+    ) {
+        OutboxDocumentResponse outboxEvent =
+                new OutboxDocumentResponse();
 
-        private final InboxDocumentProcessingRequestRepository inboxRepository;
-        private final InboxDocumentProcessingRequestMapper inboxMapper;
+        outboxEvent.setDocumentId(inbox.getDocumentId());
+        outboxEvent.setEventId(inbox.getEventId());
+        outboxEvent.setPatientId(inbox.getPatientId());
 
-        @Inject
-        private ProcessDocumentRequestFallback(InboxDocumentProcessingRequestRepository inboxRepository, InboxDocumentProcessingRequestMapper inboxMapper) {
-            this.inboxRepository = inboxRepository;
-            this.inboxMapper = inboxMapper;
+        return outboxEvent;
+    }
+
+    private void registerRetriableFailure(
+            InboxDocumentProcessingRequest inbox,
+            OutboxDocumentResponse outboxEvent,
+            String errorCode,
+            String errorMessage
+    ) {
+        inbox.failed();
+
+        if (ProcessingStatus.ALL_RETRY_FAILED.equals(
+                inbox.getStatus()
+        )) {
+            persistFailureResponse(
+                    outboxEvent,
+                    errorCode,
+                    errorMessage
+            );
         }
+    }
 
-        @Override
-        public Void handle(ExecutionContext context) {
-            Throwable failure = context.getFailure();
-            Object[] parameters = context.getParameters();
+    private void registerPermanentFailure(
+            InboxDocumentProcessingRequest inbox,
+            OutboxDocumentResponse outboxEvent,
+            String errorCode,
+            String errorMessage
+    ) {
+        inbox.failPermanently();
 
-            if (parameters[0] instanceof InboxDocumentProcessingRequest inbox) {
-                if (failure instanceof RateLimitException) {
-                    inbox.reprocessByRateLimit();
-                    logger.info("action=processInboxEventFallbackRateLimit, inboxEventId={}, documentId={}", inbox.getEventId(), inbox.getDocumentId());
-                } else {
-                    inbox.failed();
-                    logger.info("action=processInboxEventFallback, inboxEventId={}, documentId={}", inbox.getEventId(), inbox.getDocumentId());
-                }
-                inboxRepository.persistOrUpdate(inboxMapper.toEntity(inbox));
-            }
-            return null;
-        }
+        persistFailureResponse(
+                outboxEvent,
+                errorCode,
+                errorMessage
+        );
+    }
+
+    private void persistFailureResponse(
+            OutboxDocumentResponse outboxEvent,
+            String errorCode,
+            String errorMessage
+    ) {
+        outboxEvent.markFailedResponse(
+                errorCode + ": " + errorMessage
+        );
+
+        outboxRepository.persistOrUpdate(
+                outboxMapper.toEntity(outboxEvent)
+        );
     }
 
     private Image buildImage(String filePath) throws IOException {
-        byte[] fileContent = nextcloudStorageService.load(filePath);
-        String base64Image = Base64.getEncoder().encodeToString(fileContent);
-        String mimeType = getMimeType(filePath);
+        final byte[] fileContent;
+
+        try {
+            fileContent = nextcloudStorageService.load(filePath);
+        } catch (RuntimeException exception) {
+            throw new IOException(
+                    "Não foi possível ler o arquivo armazenado.",
+                    exception
+            );
+        }
+
+        String base64Image =
+                Base64.getEncoder().encodeToString(fileContent);
+
         return Image.builder()
                 .base64Data(base64Image)
-                .mimeType(mimeType)
+                .mimeType(getMimeType(filePath))
                 .build();
     }
 
     private String getMimeType(String filePath) {
-        String lower = filePath.toLowerCase();
-        if (lower.endsWith(".png")) return "image/png";
-        if (lower.endsWith(".jpeg") || lower.endsWith(".jpg")) return "image/jpeg";
+        String normalizedPath = filePath.toLowerCase();
+
+        if (normalizedPath.endsWith(".png")) {
+            return "image/png";
+        }
+
+        if (normalizedPath.endsWith(".jpeg")
+                || normalizedPath.endsWith(".jpg")) {
+            return "image/jpeg";
+        }
+
         return "application/octet-stream";
     }
 }

@@ -29,15 +29,75 @@ public final class InboxDocumentProcessingRequest {
             UUID eventId,
             UUID documentId,
             String filePath,
-            UUID patientId) {
+            UUID patientId
+    ) {
+        this(
+                id,
+                eventId,
+                documentId,
+                filePath,
+                patientId,
+                ProcessingStatus.PENDING,
+                LocalDateTime.now(Constants.SAO_PAULO_ZONE_ID),
+                null,
+                (short) 0
+        );
+    }
+
+    private InboxDocumentProcessingRequest(
+            String id,
+            UUID eventId,
+            UUID documentId,
+            String filePath,
+            UUID patientId,
+            ProcessingStatus status,
+            LocalDateTime createdAt,
+            LocalDateTime processedAt,
+            Short retryCount
+    ) {
         this.id = id;
         this.eventId = eventId;
         this.documentId = documentId;
         this.filePath = filePath;
         this.patientId = patientId;
-        this.status = ProcessingStatus.PENDING;
-        this.createdAt = LocalDateTime.now(Constants.SAO_PAULO_ZONE_ID);
-        this.retryCount = Short.valueOf("0");
+
+        this.status = status == null
+                ? ProcessingStatus.PENDING
+                : status;
+
+        this.createdAt = createdAt == null
+                ? LocalDateTime.now(Constants.SAO_PAULO_ZONE_ID)
+                : createdAt;
+
+        this.processedAt = processedAt;
+
+        this.retryCount = retryCount == null
+                ? (short) 0
+                : retryCount;
+    }
+
+    public static InboxDocumentProcessingRequest rehydrate(
+            String id,
+            UUID eventId,
+            UUID documentId,
+            String filePath,
+            UUID patientId,
+            ProcessingStatus status,
+            LocalDateTime createdAt,
+            LocalDateTime processedAt,
+            Short retryCount
+    ) {
+        return new InboxDocumentProcessingRequest(
+                id,
+                eventId,
+                documentId,
+                filePath,
+                patientId,
+                status,
+                createdAt,
+                processedAt,
+                retryCount
+        );
     }
 
     public void processing() {
@@ -54,17 +114,29 @@ public final class InboxDocumentProcessingRequest {
     }
 
     public void failed() {
+        if (!ProcessingStatus.PROCESSING.equals(status)) {
+            return;
+        }
+
+        this.retryCount++;
+
         if (RETRY_LIMIT < retryCount) {
             this.status = ProcessingStatus.ALL_RETRY_FAILED;
-        } else if (ProcessingStatus.PROCESSING.equals(status)) {
+        } else {
             this.status = ProcessingStatus.FAILED;
-            this.retryCount++;
         }
-        this.processedAt = LocalDateTime.now(Constants.SAO_PAULO_ZONE_ID);
+
+        this.processedAt =
+                LocalDateTime.now(Constants.SAO_PAULO_ZONE_ID);
     }
 
-    public void reprocessByRateLimit() {
-        this.status = ProcessingStatus.PENDING;
+    public void failPermanently() {
+        if (ProcessingStatus.PROCESSING.equals(status)) {
+            this.retryCount++;
+        }
+
+        this.status = ProcessingStatus.ALL_RETRY_FAILED;
+        this.processedAt = LocalDateTime.now(Constants.SAO_PAULO_ZONE_ID);
     }
 
     @Override

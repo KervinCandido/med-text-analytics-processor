@@ -84,6 +84,7 @@ public class ProcessOutboxEventService {
         );
 
         outboxEvent.processing();
+        outboxEvent.ensureResponseEventId();
         outboxEvent.ensureOccurredAt();
 
         if (outboxEvent.isFailedResponse()) {

@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.times;
@@ -82,6 +84,8 @@ class ProcessOutboxEventServiceTest {
                 false
         );
 
+        outboxEvent.setResponseEventId(null);
+
         Instant occurredAt =
                 outboxEvent.getOccurredAt();
 
@@ -92,6 +96,15 @@ class ProcessOutboxEventServiceTest {
                 .thenReturn(entity);
 
         service.process(outboxEvent);
+
+        assertNotNull(
+                outboxEvent.getResponseEventId()
+        );
+
+        assertNotEquals(
+                eventId,
+                outboxEvent.getResponseEventId()
+        );
 
         ArgumentCaptor<DocumentProcessedResponseDTO> captor =
                 ArgumentCaptor.forClass(
@@ -171,6 +184,7 @@ class ProcessOutboxEventServiceTest {
                 new ObjectId().toHexString()
         );
         outboxEvent.markSuccessfulResponse();
+        outboxEvent.setResponseEventId(null);
 
         Instant occurredAt =
                 outboxEvent.getOccurredAt();
@@ -207,6 +221,15 @@ class ProcessOutboxEventServiceTest {
                 .thenReturn(resultId.toHexString());
 
         service.process(outboxEvent);
+
+        assertNotNull(
+                outboxEvent.getResponseEventId()
+        );
+
+        assertNotEquals(
+                eventId,
+                outboxEvent.getResponseEventId()
+        );
 
         ArgumentCaptor<DocumentProcessedResponseDTO> captor =
                 ArgumentCaptor.forClass(

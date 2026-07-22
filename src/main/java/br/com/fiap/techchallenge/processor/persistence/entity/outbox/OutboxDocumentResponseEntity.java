@@ -26,6 +26,7 @@ public class OutboxDocumentResponseEntity {
     private ProcessingStatus responseStatus;
 
     private UUID eventId;
+    private UUID responseEventId;
     private UUID documentId;
     private UUID patientId;
 

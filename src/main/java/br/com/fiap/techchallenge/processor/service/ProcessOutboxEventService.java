@@ -1,7 +1,7 @@
 package br.com.fiap.techchallenge.processor.service;
 
+import br.com.fiap.techchallenge.processor.domain.Documento;
 import br.com.fiap.techchallenge.processor.domain.outbox.OutboxDocumentResponse;
-import br.com.fiap.techchallenge.processor.dto.DocumentProcessedResponseDTO;
 import br.com.fiap.techchallenge.processor.persistence.DocumentoRepository;
 import br.com.fiap.techchallenge.processor.persistence.OutboxDocumentProcessedResponseRepository;
 import br.com.fiap.techchallenge.processor.persistence.entity.DocumentoEntity;
@@ -39,13 +39,18 @@ public class ProcessOutboxEventService {
 
     private final OutboxDocumentResponseMapper outboxMapper;
 
+    private final DocumentProcessingResultAssembler
+            resultAssembler;
+
     @Inject
     public ProcessOutboxEventService(
             DocumentProcessedPublisher documentProcessedPublisher,
             DocumentoMapper documentMapper,
             DocumentoRepository documentoRepository,
-            OutboxDocumentProcessedResponseRepository outboxRepository,
-            OutboxDocumentResponseMapper outboxMapper
+            OutboxDocumentProcessedResponseRepository
+                    outboxRepository,
+            OutboxDocumentResponseMapper outboxMapper,
+            DocumentProcessingResultAssembler resultAssembler
     ) {
         this.documentProcessedPublisher =
                 documentProcessedPublisher;
@@ -54,6 +59,7 @@ public class ProcessOutboxEventService {
         this.documentoRepository = documentoRepository;
         this.outboxRepository = outboxRepository;
         this.outboxMapper = outboxMapper;
+        this.resultAssembler = resultAssembler;
     }
 
     @Retry(
@@ -76,9 +82,10 @@ public class ProcessOutboxEventService {
     ) {
         logger.info(
                 "action=processOutboxEvent, "
-                        + "outboxEventId={}, eventId={}, "
-                        + "documentId={}",
+                        + "outboxEventId={}, responseEventId={}, "
+                        + "correlationId={}, documentId={}",
                 outboxEvent.getOutboxId(),
+                outboxEvent.getResponseEventId(),
                 outboxEvent.getEventId(),
                 outboxEvent.getDocumentId()
         );
@@ -99,7 +106,7 @@ public class ProcessOutboxEventService {
         if (outboxEvent.isFailedResponse()) {
             publishFailedResponse(outboxEvent);
         } else {
-            publishSuccessfulResponses(
+            publishSuccessfulResponse(
                     outboxEvent,
                     outboxEntity
             );
@@ -119,48 +126,48 @@ public class ProcessOutboxEventService {
     private void publishFailedResponse(
             OutboxDocumentResponse outboxEvent
     ) {
-        DocumentProcessedResponseDTO response =
-                DocumentProcessedResponseDTO.failed(
-                        outboxEvent.getEventId(),
-                        outboxEvent.getOccurredAt(),
-                        outboxEvent.getDocumentId(),
-                        outboxEvent.getPatientId(),
-                        outboxEvent.getErrorCode(),
-                        outboxEvent.getErrorMessage(),
-                        Boolean.TRUE.equals(
-                                outboxEvent.getErrorRetryable()
-                        ),
-                        outboxEvent.getErrorDetail()
-                );
-
-        documentProcessedPublisher.publish(response);
+        documentProcessedPublisher.publish(
+                resultAssembler.failed(outboxEvent)
+        );
     }
 
-    private void publishSuccessfulResponses(
+    private void publishSuccessfulResponse(
             OutboxDocumentResponse outboxEvent,
             br.com.fiap.techchallenge.processor
                     .persistence.entity.outbox
                     .OutboxDocumentResponseEntity outboxEntity
     ) {
-        List<DocumentoEntity> documentos =
+        if (outboxEntity.getDocuments() == null
+                || outboxEntity.getDocuments().isEmpty()) {
+            throw new IllegalStateException(
+                    "Outbox de sucesso sem documentos processados."
+            );
+        }
+
+        List<DocumentoEntity> documentEntities =
                 documentoRepository.buscaDocumentosPorIds(
                         outboxEntity.getDocuments()
                 );
 
-        documentos.stream()
-                .map(documentMapper::toDomain)
-                .map(document ->
-                        DocumentProcessedResponseDTO.processed(
-                                outboxEvent.getEventId(),
-                                outboxEvent.getOccurredAt(),
-                                outboxEvent.getDocumentId(),
-                                outboxEvent.getPatientId(),
-                                document
-                        )
+        if (documentEntities.size()
+                != outboxEntity.getDocuments().size()) {
+            throw new IllegalStateException(
+                    "Nem todos os documentos processados "
+                            + "foram encontrados."
+            );
+        }
+
+        List<Documento> documents =
+                documentEntities.stream()
+                        .map(documentMapper::toDomain)
+                        .toList();
+
+        documentProcessedPublisher.publish(
+                resultAssembler.completed(
+                        outboxEvent,
+                        documents
                 )
-                .forEach(
-                        documentProcessedPublisher::publish
-                );
+        );
     }
 
     public void processFallback(

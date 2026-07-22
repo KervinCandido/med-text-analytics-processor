@@ -210,7 +210,8 @@ public class ProcessDocumentRequestService {
             persistFailureResponse(
                     outboxEvent,
                     errorCode,
-                    errorMessage
+                    errorMessage,
+                    true
             );
         }
     }
@@ -226,17 +227,21 @@ public class ProcessDocumentRequestService {
         persistFailureResponse(
                 outboxEvent,
                 errorCode,
-                errorMessage
+                errorMessage,
+                false
         );
     }
 
     private void persistFailureResponse(
             OutboxDocumentResponse outboxEvent,
             String errorCode,
-            String errorMessage
+            String errorMessage,
+            boolean errorRetryable
     ) {
         outboxEvent.markFailedResponse(
-                errorCode + ": " + errorMessage
+                errorCode,
+                errorMessage,
+                errorRetryable
         );
 
         outboxRepository.persistOrUpdate(

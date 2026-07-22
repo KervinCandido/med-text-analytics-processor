@@ -93,7 +93,10 @@ public class ProcessDocumentRequestService {
         String filePath = inbox.getFilePath();
 
         try {
-            Image image = buildImage(filePath);
+            Image image = buildImage(
+                    filePath,
+                    inbox.getContentType()
+            );
 
             var documentMetaData =
                     classifyDocumentIAService.classifyDocument(image);
@@ -249,7 +252,10 @@ public class ProcessDocumentRequestService {
         );
     }
 
-    private Image buildImage(String filePath) throws IOException {
+    private Image buildImage(
+            String filePath,
+            String contentType
+    ) throws IOException {
         final byte[] fileContent;
 
         try {
@@ -266,22 +272,9 @@ public class ProcessDocumentRequestService {
 
         return Image.builder()
                 .base64Data(base64Image)
-                .mimeType(getMimeType(filePath))
+                .mimeType(contentType)
                 .build();
     }
 
-    private String getMimeType(String filePath) {
-        String normalizedPath = filePath.toLowerCase();
 
-        if (normalizedPath.endsWith(".png")) {
-            return "image/png";
-        }
-
-        if (normalizedPath.endsWith(".jpeg")
-                || normalizedPath.endsWith(".jpg")) {
-            return "image/jpeg";
-        }
-
-        return "application/octet-stream";
-    }
 }

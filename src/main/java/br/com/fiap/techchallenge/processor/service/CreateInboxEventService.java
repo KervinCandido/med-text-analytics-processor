@@ -127,6 +127,9 @@ public class CreateInboxEventService {
         ) && Objects.equals(
                 existing.getFilePath(),
                 incoming.getFilePath()
+        ) && Objects.equals(
+                existing.getContentType(),
+                incoming.getContentType()
         );
     }
 }

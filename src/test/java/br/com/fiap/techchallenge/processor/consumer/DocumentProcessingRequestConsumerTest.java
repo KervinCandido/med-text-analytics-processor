@@ -14,7 +14,6 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -46,6 +45,8 @@ class DocumentProcessingRequestConsumerTest {
                     + DOCUMENT_ID
                     + "/file";
 
+    private static final String CONTENT_TYPE = "image/png";
+
     private static final Instant OCCURRED_AT =
             Instant.parse(
                     "2026-07-21T13:30:15.123Z"
@@ -65,9 +66,9 @@ class DocumentProcessingRequestConsumerTest {
     }
 
     @Test
-    void shouldPersistLegacyMessage() {
+    void shouldPersistVersionOneMessage() {
         consumer.documentProcessingRequest(
-                legacyMessage()
+                validMessage()
         );
 
         ArgumentCaptor<InboxDocumentProcessingRequest>
@@ -98,24 +99,12 @@ class DocumentProcessingRequestConsumerTest {
                 () -> assertEquals(
                         FILE_URL,
                         inbox.getFilePath()
+                ),
+                () -> assertEquals(
+                        CONTENT_TYPE,
+                        inbox.getContentType()
                 )
         );
-    }
-
-    @Test
-    void shouldPersistVersionOneMessage() {
-        assertDoesNotThrow(
-                () -> consumer.documentProcessingRequest(
-                        versionOneMessage()
-                )
-        );
-
-        verify(createInboxEventService)
-                .create(
-                        any(
-                                InboxDocumentProcessingRequest.class
-                        )
-                );
     }
 
     @Test
@@ -128,7 +117,8 @@ class DocumentProcessingRequestConsumerTest {
                         EVENT_ID,
                         DOCUMENT_ID,
                         PATIENT_ID,
-                        FILE_URL
+                        FILE_URL,
+                        CONTENT_TYPE
                 );
 
         IllegalArgumentException exception =
@@ -168,7 +158,7 @@ class DocumentProcessingRequestConsumerTest {
                         RuntimeException.class,
                         () -> consumer
                                 .documentProcessingRequest(
-                                        versionOneMessage()
+                                        validMessage()
                                 )
                 );
 
@@ -178,21 +168,7 @@ class DocumentProcessingRequestConsumerTest {
         );
     }
 
-    private static DocumentProcessingRequestedDTO
-    legacyMessage() {
-        return new DocumentProcessingRequestedDTO(
-                null,
-                null,
-                null,
-                EVENT_ID,
-                DOCUMENT_ID,
-                PATIENT_ID,
-                FILE_URL
-        );
-    }
-
-    private static DocumentProcessingRequestedDTO
-    versionOneMessage() {
+    private static DocumentProcessingRequestedDTO validMessage() {
         return new DocumentProcessingRequestedDTO(
                 1,
                 "DOCUMENT_PROCESSING_REQUESTED",
@@ -200,7 +176,8 @@ class DocumentProcessingRequestConsumerTest {
                 EVENT_ID,
                 DOCUMENT_ID,
                 PATIENT_ID,
-                FILE_URL
+                FILE_URL,
+                CONTENT_TYPE
         );
     }
 }

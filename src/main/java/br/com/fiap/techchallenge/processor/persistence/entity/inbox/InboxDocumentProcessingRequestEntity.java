@@ -22,6 +22,7 @@ public class InboxDocumentProcessingRequestEntity {
     private UUID documentId;
     private UUID patientId;
     private String filePath;
+    private String contentType;
     private ProcessingStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime processedAt;

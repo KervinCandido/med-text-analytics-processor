@@ -26,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -37,20 +38,29 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ProcessDocumentRequestServiceTest {
 
+    private static final String FILE_PATH =
+            "/documents/storage-object-without-extension";
+
+    private static final String CONTENT_TYPE =
+            "image/jpeg";
+
     @Mock
     private ClassifyDocumentIAService classifyDocumentIAService;
 
     @Mock
-    private DocumentExtractDataIAStrategy documentExtractDataIAStrategy;
+    private DocumentExtractDataIAStrategy
+            documentExtractDataIAStrategy;
 
     @Mock
     private DocumentoRepository documentoRepository;
 
     @Mock
-    private InboxDocumentProcessingRequestRepository inboxRepository;
+    private InboxDocumentProcessingRequestRepository
+            inboxRepository;
 
     @Mock
-    private OutboxDocumentProcessedResponseRepository outboxRepository;
+    private OutboxDocumentProcessedResponseRepository
+            outboxRepository;
 
     @Mock
     private InboxDocumentProcessingRequestMapper inboxMapper;
@@ -86,7 +96,7 @@ class ProcessDocumentRequestServiceTest {
     }
 
     @Test
-    void shouldPersistTerminalFailureWhenAiQuotaIsExceeded() {
+    void shouldUseInboxContentTypeAndPersistTerminalFailureWhenAiQuotaIsExceeded() {
         UUID eventId = UUID.randomUUID();
         UUID documentId = UUID.randomUUID();
         UUID patientId = UUID.randomUUID();
@@ -96,7 +106,8 @@ class ProcessDocumentRequestServiceTest {
                         "inbox-id",
                         eventId,
                         documentId,
-                        "/documents/exame.png",
+                        FILE_PATH,
+                        CONTENT_TYPE,
                         patientId
                 );
 
@@ -109,8 +120,11 @@ class ProcessDocumentRequestServiceTest {
         when(inboxMapper.toEntity(inbox))
                 .thenReturn(inboxEntity);
 
-        when(nextcloudStorageService.load(inbox.getFilePath()))
-                .thenReturn(new byte[]{1, 2, 3});
+        when(nextcloudStorageService.load(
+                inbox.getFilePath()
+        )).thenReturn(
+                new byte[]{1, 2, 3}
+        );
 
         when(classifyDocumentIAService.classifyDocument(
                 any(Image.class)
@@ -144,9 +158,20 @@ class ProcessDocumentRequestServiceTest {
         OutboxDocumentResponse failureOutbox =
                 outboxCaptor.getValue();
 
-        assertEquals(eventId, failureOutbox.getEventId());
-        assertEquals(documentId, failureOutbox.getDocumentId());
-        assertEquals(patientId, failureOutbox.getPatientId());
+        assertEquals(
+                eventId,
+                failureOutbox.getEventId()
+        );
+
+        assertEquals(
+                documentId,
+                failureOutbox.getDocumentId()
+        );
+
+        assertEquals(
+                patientId,
+                failureOutbox.getPatientId()
+        );
 
         assertEquals(
                 ProcessingStatus.PENDING,
@@ -158,7 +183,9 @@ class ProcessDocumentRequestServiceTest {
                 failureOutbox.getResponseStatus()
         );
 
-        assertTrue(failureOutbox.getDocuments().isEmpty());
+        assertTrue(
+                failureOutbox.getDocuments().isEmpty()
+        );
 
         assertEquals(
                 "AI_QUOTA_EXCEEDED",
@@ -171,16 +198,30 @@ class ProcessDocumentRequestServiceTest {
                 failureOutbox.getErrorMessage()
         );
 
-        assertEquals(
-                false,
+        assertFalse(
                 failureOutbox.getErrorRetryable()
         );
 
-        assertNotNull(failureOutbox.getOccurredAt());
+        assertNotNull(
+                failureOutbox.getOccurredAt()
+        );
 
         assertTrue(
                 failureOutbox.getErrorDetail()
                         .startsWith("AI_QUOTA_EXCEEDED:")
+        );
+
+        ArgumentCaptor<Image> imageCaptor =
+                ArgumentCaptor.forClass(Image.class);
+
+        verify(classifyDocumentIAService)
+                .classifyDocument(imageCaptor.capture());
+
+        Image image = imageCaptor.getValue();
+
+        assertEquals(
+                CONTENT_TYPE,
+                image.mimeType()
         );
 
         verify(outboxRepository)
@@ -192,10 +233,7 @@ class ProcessDocumentRequestServiceTest {
         ).persistOrUpdate(inboxEntity);
 
         verify(nextcloudStorageService)
-                .load(inbox.getFilePath());
-
-        verify(classifyDocumentIAService)
-                .classifyDocument(any(Image.class));
+                .load(FILE_PATH);
 
         verifyNoInteractions(
                 documentExtractDataIAStrategy,

@@ -8,9 +8,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DocumentProcessingRequestedValidatorTest {
 
@@ -34,40 +32,18 @@ class DocumentProcessingRequestedValidatorTest {
                     + DOCUMENT_ID
                     + "/file";
 
+    private static final String CONTENT_TYPE = "image/png";
+
     private static final Instant OCCURRED_AT =
             Instant.parse(
                     "2026-07-21T13:30:15.123Z"
             );
 
     @Test
-    void shouldAcceptLegacyMessage() {
-        DocumentProcessingRequestedDTO message =
-                legacyMessage();
-
-        assertDoesNotThrow(
-                () -> DocumentProcessingRequestedValidator
-                        .validate(message)
-        );
-
-        assertTrue(
-                DocumentProcessingRequestedValidator
-                        .isLegacy(message)
-        );
-    }
-
-    @Test
     void shouldAcceptVersionOneMessage() {
-        DocumentProcessingRequestedDTO message =
-                versionOneMessage();
-
         assertDoesNotThrow(
                 () -> DocumentProcessingRequestedValidator
-                        .validate(message)
-        );
-
-        assertFalse(
-                DocumentProcessingRequestedValidator
-                        .isLegacy(message)
+                        .validate(validMessage())
         );
     }
 
@@ -87,78 +63,19 @@ class DocumentProcessingRequestedValidatorTest {
     }
 
     @Test
-    void shouldRejectMissingEventId() {
-        DocumentProcessingRequestedDTO message =
-                new DocumentProcessingRequestedDTO(
-                        null,
-                        null,
-                        null,
-                        null,
-                        DOCUMENT_ID,
-                        PATIENT_ID,
-                        FILE_URL
-                );
-
+    void shouldRejectMissingSchemaVersion() {
         assertRequiredFieldError(
-                message,
-                "eventId"
-        );
-    }
-
-    @Test
-    void shouldRejectMissingDocumentId() {
-        DocumentProcessingRequestedDTO message =
                 new DocumentProcessingRequestedDTO(
                         null,
-                        null,
-                        null,
-                        EVENT_ID,
-                        null,
-                        PATIENT_ID,
-                        FILE_URL
-                );
-
-        assertRequiredFieldError(
-                message,
-                "documentId"
-        );
-    }
-
-    @Test
-    void shouldRejectMissingPatientId() {
-        DocumentProcessingRequestedDTO message =
-                new DocumentProcessingRequestedDTO(
-                        null,
-                        null,
-                        null,
-                        EVENT_ID,
-                        DOCUMENT_ID,
-                        null,
-                        FILE_URL
-                );
-
-        assertRequiredFieldError(
-                message,
-                "patientId"
-        );
-    }
-
-    @Test
-    void shouldRejectBlankFileUrl() {
-        DocumentProcessingRequestedDTO message =
-                new DocumentProcessingRequestedDTO(
-                        null,
-                        null,
-                        null,
+                        "DOCUMENT_PROCESSING_REQUESTED",
+                        OCCURRED_AT,
                         EVENT_ID,
                         DOCUMENT_ID,
                         PATIENT_ID,
-                        " "
-                );
-
-        assertRequiredFieldError(
-                message,
-                "fileUrl"
+                        FILE_URL,
+                        CONTENT_TYPE
+                ),
+                "schemaVersion"
         );
     }
 
@@ -172,7 +89,8 @@ class DocumentProcessingRequestedValidatorTest {
                         EVENT_ID,
                         DOCUMENT_ID,
                         PATIENT_ID,
-                        FILE_URL
+                        FILE_URL,
+                        CONTENT_TYPE
                 );
 
         IllegalArgumentException exception =
@@ -189,6 +107,23 @@ class DocumentProcessingRequestedValidatorTest {
     }
 
     @Test
+    void shouldRejectMissingEventType() {
+        assertRequiredFieldError(
+                new DocumentProcessingRequestedDTO(
+                        1,
+                        null,
+                        OCCURRED_AT,
+                        EVENT_ID,
+                        DOCUMENT_ID,
+                        PATIENT_ID,
+                        FILE_URL,
+                        CONTENT_TYPE
+                ),
+                "eventType"
+        );
+    }
+
+    @Test
     void shouldRejectInvalidEventType() {
         DocumentProcessingRequestedDTO message =
                 new DocumentProcessingRequestedDTO(
@@ -198,7 +133,8 @@ class DocumentProcessingRequestedValidatorTest {
                         EVENT_ID,
                         DOCUMENT_ID,
                         PATIENT_ID,
-                        FILE_URL
+                        FILE_URL,
+                        CONTENT_TYPE
                 );
 
         IllegalArgumentException exception =
@@ -215,8 +151,8 @@ class DocumentProcessingRequestedValidatorTest {
     }
 
     @Test
-    void shouldRejectMissingOccurredAtInVersionOneMessage() {
-        DocumentProcessingRequestedDTO message =
+    void shouldRejectMissingOccurredAt() {
+        assertRequiredFieldError(
                 new DocumentProcessingRequestedDTO(
                         1,
                         "DOCUMENT_PROCESSING_REQUESTED",
@@ -224,26 +160,93 @@ class DocumentProcessingRequestedValidatorTest {
                         EVENT_ID,
                         DOCUMENT_ID,
                         PATIENT_ID,
-                        FILE_URL
-                );
-
-        assertRequiredFieldError(
-                message,
+                        FILE_URL,
+                        CONTENT_TYPE
+                ),
                 "occurredAt"
         );
     }
 
     @Test
-    void shouldRejectPartiallyVersionedMessage() {
-        DocumentProcessingRequestedDTO message =
+    void shouldRejectMissingEventId() {
+        assertRequiredFieldError(
                 new DocumentProcessingRequestedDTO(
+                        1,
+                        "DOCUMENT_PROCESSING_REQUESTED",
+                        OCCURRED_AT,
                         null,
+                        DOCUMENT_ID,
+                        PATIENT_ID,
+                        FILE_URL,
+                        CONTENT_TYPE
+                ),
+                "eventId"
+        );
+    }
+
+    @Test
+    void shouldRejectMissingDocumentId() {
+        assertRequiredFieldError(
+                new DocumentProcessingRequestedDTO(
+                        1,
+                        "DOCUMENT_PROCESSING_REQUESTED",
+                        OCCURRED_AT,
+                        EVENT_ID,
+                        null,
+                        PATIENT_ID,
+                        FILE_URL,
+                        CONTENT_TYPE
+                ),
+                "documentId"
+        );
+    }
+
+    @Test
+    void shouldRejectMissingPatientId() {
+        assertRequiredFieldError(
+                new DocumentProcessingRequestedDTO(
+                        1,
+                        "DOCUMENT_PROCESSING_REQUESTED",
+                        OCCURRED_AT,
+                        EVENT_ID,
+                        DOCUMENT_ID,
+                        null,
+                        FILE_URL,
+                        CONTENT_TYPE
+                ),
+                "patientId"
+        );
+    }
+
+    @Test
+    void shouldRejectBlankFileUrl() {
+        assertRequiredFieldError(
+                new DocumentProcessingRequestedDTO(
+                        1,
                         "DOCUMENT_PROCESSING_REQUESTED",
                         OCCURRED_AT,
                         EVENT_ID,
                         DOCUMENT_ID,
                         PATIENT_ID,
-                        FILE_URL
+                        " ",
+                        CONTENT_TYPE
+                ),
+                "fileUrl"
+        );
+    }
+
+    @Test
+    void shouldRejectInvalidFileUrl() {
+        DocumentProcessingRequestedDTO message =
+                new DocumentProcessingRequestedDTO(
+                        1,
+                        "DOCUMENT_PROCESSING_REQUESTED",
+                        OCCURRED_AT,
+                        EVENT_ID,
+                        DOCUMENT_ID,
+                        PATIENT_ID,
+                        "not-an-absolute-uri",
+                        CONTENT_TYPE
                 );
 
         IllegalArgumentException exception =
@@ -254,24 +257,73 @@ class DocumentProcessingRequestedValidatorTest {
                 );
 
         assertEquals(
-                "Unsupported schemaVersion: null",
+                "Invalid field: fileUrl",
                 exception.getMessage()
         );
     }
 
-    private static DocumentProcessingRequestedDTO legacyMessage() {
-        return new DocumentProcessingRequestedDTO(
-                null,
-                null,
-                null,
-                EVENT_ID,
-                DOCUMENT_ID,
-                PATIENT_ID,
-                FILE_URL
+    @Test
+    void shouldRejectMissingContentType() {
+        assertRequiredFieldError(
+                new DocumentProcessingRequestedDTO(
+                        1,
+                        "DOCUMENT_PROCESSING_REQUESTED",
+                        OCCURRED_AT,
+                        EVENT_ID,
+                        DOCUMENT_ID,
+                        PATIENT_ID,
+                        FILE_URL,
+                        null
+                ),
+                "contentType"
         );
     }
 
-    private static DocumentProcessingRequestedDTO versionOneMessage() {
+    @Test
+    void shouldRejectBlankContentType() {
+        assertRequiredFieldError(
+                new DocumentProcessingRequestedDTO(
+                        1,
+                        "DOCUMENT_PROCESSING_REQUESTED",
+                        OCCURRED_AT,
+                        EVENT_ID,
+                        DOCUMENT_ID,
+                        PATIENT_ID,
+                        FILE_URL,
+                        " "
+                ),
+                "contentType"
+        );
+    }
+
+    @Test
+    void shouldRejectContentTypeAboveMaximumLength() {
+        DocumentProcessingRequestedDTO message =
+                new DocumentProcessingRequestedDTO(
+                        1,
+                        "DOCUMENT_PROCESSING_REQUESTED",
+                        OCCURRED_AT,
+                        EVENT_ID,
+                        DOCUMENT_ID,
+                        PATIENT_ID,
+                        FILE_URL,
+                        "a".repeat(101)
+                );
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> DocumentProcessingRequestedValidator
+                                .validate(message)
+                );
+
+        assertEquals(
+                "Field exceeds maximum length: contentType",
+                exception.getMessage()
+        );
+    }
+
+    private static DocumentProcessingRequestedDTO validMessage() {
         return new DocumentProcessingRequestedDTO(
                 1,
                 "DOCUMENT_PROCESSING_REQUESTED",
@@ -279,7 +331,8 @@ class DocumentProcessingRequestedValidatorTest {
                 EVENT_ID,
                 DOCUMENT_ID,
                 PATIENT_ID,
-                FILE_URL
+                FILE_URL,
+                CONTENT_TYPE
         );
     }
 

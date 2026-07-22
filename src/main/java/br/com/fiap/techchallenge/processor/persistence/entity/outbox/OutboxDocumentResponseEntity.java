@@ -8,6 +8,7 @@ import lombok.Setter;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.types.ObjectId;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,17 +24,31 @@ public class OutboxDocumentResponseEntity {
 
     private ProcessingStatus status;
     private ProcessingStatus responseStatus;
+
     private UUID eventId;
     private UUID documentId;
     private UUID patientId;
+
     private LocalDateTime createdAt;
+    private Instant occurredAt;
+
     private List<ObjectId> documents;
+
+    private String errorCode;
+    private String errorMessage;
+    private Boolean errorRetryable;
+
+    /*
+     * Campo legado mantido temporariamente durante a migração.
+     */
     private String errorDetail;
 
     public OutboxDocumentResponseEntity() {
         this.status = ProcessingStatus.PENDING;
         this.responseStatus = ProcessingStatus.PROCESSED;
         this.documents = new ArrayList<>();
-        this.createdAt = LocalDateTime.now(Constants.SAO_PAULO_ZONE_ID);
+        this.createdAt = LocalDateTime.now(
+                Constants.SAO_PAULO_ZONE_ID
+        );
     }
 }

@@ -160,6 +160,24 @@ class ProcessDocumentRequestServiceTest {
 
         assertTrue(failureOutbox.getDocuments().isEmpty());
 
+        assertEquals(
+                "AI_QUOTA_EXCEEDED",
+                failureOutbox.getErrorCode()
+        );
+
+        assertEquals(
+                "O limite de uso do serviço de inteligência "
+                        + "artificial foi excedido.",
+                failureOutbox.getErrorMessage()
+        );
+
+        assertEquals(
+                false,
+                failureOutbox.getErrorRetryable()
+        );
+
+        assertNotNull(failureOutbox.getOccurredAt());
+
         assertTrue(
                 failureOutbox.getErrorDetail()
                         .startsWith("AI_QUOTA_EXCEEDED:")

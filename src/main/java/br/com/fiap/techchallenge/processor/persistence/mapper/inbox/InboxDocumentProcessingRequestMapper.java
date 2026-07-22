@@ -33,6 +33,7 @@ public interface InboxDocumentProcessingRequestMapper {
                 entity.getEventId(),
                 entity.getDocumentId(),
                 entity.getFilePath(),
+                entity.getContentType(),
                 entity.getPatientId(),
                 entity.getStatus(),
                 entity.getCreatedAt(),

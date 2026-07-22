@@ -34,16 +34,13 @@ public class DocumentProcessingRequestConsumer {
     ) {
         DocumentProcessingRequestedValidator.validate(message);
 
-        boolean legacy =
-                DocumentProcessingRequestedValidator
-                        .isLegacy(message);
-
         var inbox =
                 new InboxDocumentProcessingRequest(
                         null,
                         message.eventId(),
                         message.documentId(),
                         message.fileUrl(),
+                        message.contentType(),
                         message.patientId()
                 );
 
@@ -52,11 +49,11 @@ public class DocumentProcessingRequestConsumer {
         logger.info(
                 "action=documentProcessingRequestReceived, "
                         + "eventId={}, documentId={}, "
-                        + "schemaVersion={}, legacy={}",
+                        + "schemaVersion={}, contentType={}",
                 message.eventId(),
                 message.documentId(),
                 message.schemaVersion(),
-                legacy
+                message.contentType()
         );
     }
 }

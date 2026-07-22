@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
@@ -47,6 +48,9 @@ class CreateInboxEventServiceTest {
             "https://patient-document-service:8443/documents/"
                     + DOCUMENT_ID
                     + "/file";
+
+    private static final String CONTENT_TYPE =
+            "image/png";
 
     @Mock
     private InboxDocumentProcessingRequestMapper mapper;
@@ -116,7 +120,7 @@ class CreateInboxEventServiceTest {
     }
 
     @Test
-    void shouldRejectDuplicateWithConflictingPayload() {
+    void shouldRejectDuplicateWithDifferentDocumentId() {
         InboxDocumentProcessingRequest inbox =
                 inboxRequest();
 
@@ -147,9 +151,65 @@ class CreateInboxEventServiceTest {
                         Optional.of(existingEntity)
                 );
 
-        assertThrows(
-                IllegalStateException.class,
-                () -> service.create(inbox)
+        IllegalStateException exception =
+                assertThrows(
+                        IllegalStateException.class,
+                        () -> service.create(inbox)
+                );
+
+        assertEquals(
+                "Conflicting inbox event for eventId=" + EVENT_ID,
+                exception.getMessage()
+        );
+
+        assertSame(
+                duplicateException,
+                exception.getCause()
+        );
+    }
+
+    @Test
+    void shouldRejectDuplicateWithDifferentContentType() {
+        InboxDocumentProcessingRequest inbox =
+                inboxRequest();
+
+        InboxDocumentProcessingRequestEntity mappedEntity =
+                matchingEntity();
+
+        InboxDocumentProcessingRequestEntity existingEntity =
+                matchingEntity();
+
+        existingEntity.setContentType("image/jpeg");
+
+        MongoWriteException duplicateException =
+                mongoWriteException(11000);
+
+        when(mapper.toEntity(inbox))
+                .thenReturn(mappedEntity);
+
+        doThrow(duplicateException)
+                .when(repository)
+                .persist(mappedEntity);
+
+        when(repository.findByEventId(EVENT_ID))
+                .thenReturn(
+                        Optional.of(existingEntity)
+                );
+
+        IllegalStateException exception =
+                assertThrows(
+                        IllegalStateException.class,
+                        () -> service.create(inbox)
+                );
+
+        assertEquals(
+                "Conflicting inbox event for eventId=" + EVENT_ID,
+                exception.getMessage()
+        );
+
+        assertSame(
+                duplicateException,
+                exception.getCause()
         );
     }
 
@@ -193,6 +253,7 @@ class CreateInboxEventServiceTest {
                 EVENT_ID,
                 DOCUMENT_ID,
                 FILE_URL,
+                CONTENT_TYPE,
                 PATIENT_ID
         );
     }
@@ -206,6 +267,7 @@ class CreateInboxEventServiceTest {
         entity.setDocumentId(DOCUMENT_ID);
         entity.setPatientId(PATIENT_ID);
         entity.setFilePath(FILE_URL);
+        entity.setContentType(CONTENT_TYPE);
 
         return entity;
     }

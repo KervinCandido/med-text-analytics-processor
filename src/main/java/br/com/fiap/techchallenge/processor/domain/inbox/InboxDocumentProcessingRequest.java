@@ -18,6 +18,7 @@ public final class InboxDocumentProcessingRequest {
     private final UUID eventId;
     private final UUID documentId;
     private final String filePath;
+    private final String contentType;
     private final UUID patientId;
     private ProcessingStatus status;
     private final LocalDateTime createdAt;
@@ -29,6 +30,7 @@ public final class InboxDocumentProcessingRequest {
             UUID eventId,
             UUID documentId,
             String filePath,
+            String contentType,
             UUID patientId
     ) {
         this(
@@ -36,6 +38,7 @@ public final class InboxDocumentProcessingRequest {
                 eventId,
                 documentId,
                 filePath,
+                contentType,
                 patientId,
                 ProcessingStatus.PENDING,
                 LocalDateTime.now(Constants.SAO_PAULO_ZONE_ID),
@@ -49,6 +52,7 @@ public final class InboxDocumentProcessingRequest {
             UUID eventId,
             UUID documentId,
             String filePath,
+            String contentType,
             UUID patientId,
             ProcessingStatus status,
             LocalDateTime createdAt,
@@ -59,6 +63,7 @@ public final class InboxDocumentProcessingRequest {
         this.eventId = eventId;
         this.documentId = documentId;
         this.filePath = filePath;
+        this.contentType = contentType;
         this.patientId = patientId;
 
         this.status = status == null
@@ -81,6 +86,7 @@ public final class InboxDocumentProcessingRequest {
             UUID eventId,
             UUID documentId,
             String filePath,
+            String contentType,
             UUID patientId,
             ProcessingStatus status,
             LocalDateTime createdAt,
@@ -92,6 +98,7 @@ public final class InboxDocumentProcessingRequest {
                 eventId,
                 documentId,
                 filePath,
+                contentType,
                 patientId,
                 status,
                 createdAt,
@@ -148,6 +155,7 @@ public final class InboxDocumentProcessingRequest {
                 Objects.equals(this.eventId, that.eventId) &&
                 Objects.equals(this.documentId, that.documentId) &&
                 Objects.equals(this.filePath, that.filePath) &&
+                Objects.equals(this.contentType, that.contentType) &&
                 Objects.equals(this.patientId, that.patientId) &&
                 Objects.equals(this.status, that.status) &&
                 Objects.equals(this.createdAt, that.createdAt) &&
@@ -157,7 +165,18 @@ public final class InboxDocumentProcessingRequest {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, eventId, documentId, filePath, patientId, status, createdAt, processedAt, retryCount);
+        return Objects.hash(
+                id,
+                eventId,
+                documentId,
+                filePath,
+                contentType,
+                patientId,
+                status,
+                createdAt,
+                processedAt,
+                retryCount
+        );
     }
 
 }

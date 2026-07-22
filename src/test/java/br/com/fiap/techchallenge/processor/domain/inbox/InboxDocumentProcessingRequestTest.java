@@ -6,10 +6,17 @@ import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class InboxDocumentProcessingRequestTest {
+
+    private static final String FILE_PATH =
+            "/documents/exame.png";
+
+    private static final String CONTENT_TYPE =
+            "image/png";
 
     private InboxDocumentProcessingRequest inbox;
 
@@ -19,21 +26,31 @@ class InboxDocumentProcessingRequestTest {
                 "inbox-id",
                 UUID.randomUUID(),
                 UUID.randomUUID(),
-                "/documents/exame.png",
+                FILE_PATH,
+                CONTENT_TYPE,
                 UUID.randomUUID()
         );
     }
 
     @Test
-    void shouldStartAsPending() {
-        assertEquals(
-                ProcessingStatus.PENDING,
-                inbox.getStatus()
-        );
-
-        assertEquals(
-                (short) 0,
-                inbox.getRetryCount()
+    void shouldStartAsPendingAndPreserveRequestData() {
+        assertAll(
+                () -> assertEquals(
+                        ProcessingStatus.PENDING,
+                        inbox.getStatus()
+                ),
+                () -> assertEquals(
+                        (short) 0,
+                        inbox.getRetryCount()
+                ),
+                () -> assertEquals(
+                        FILE_PATH,
+                        inbox.getFilePath()
+                ),
+                () -> assertEquals(
+                        CONTENT_TYPE,
+                        inbox.getContentType()
+                )
         );
     }
 

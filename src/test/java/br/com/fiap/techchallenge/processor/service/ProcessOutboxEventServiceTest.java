@@ -3,7 +3,8 @@ package br.com.fiap.techchallenge.processor.service;
 import br.com.fiap.techchallenge.processor.domain.Documento;
 import br.com.fiap.techchallenge.processor.domain.ProcessingStatus;
 import br.com.fiap.techchallenge.processor.domain.outbox.OutboxDocumentResponse;
-import br.com.fiap.techchallenge.processor.dto.DocumentProcessedResponseDTO;
+import br.com.fiap.techchallenge.processor.dto.DocumentProcessingCompletedDTO;
+import br.com.fiap.techchallenge.processor.dto.DocumentProcessingFailedDTO;
 import br.com.fiap.techchallenge.processor.persistence.DocumentoRepository;
 import br.com.fiap.techchallenge.processor.persistence.OutboxDocumentProcessedResponseRepository;
 import br.com.fiap.techchallenge.processor.persistence.entity.DocumentoEntity;
@@ -15,17 +16,20 @@ import org.bson.types.ObjectId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -50,6 +54,10 @@ class ProcessOutboxEventServiceTest {
     @Mock
     private OutboxDocumentResponseMapper outboxMapper;
 
+    @Mock
+    private DocumentProcessingResultAssembler
+            resultAssembler;
+
     private ProcessOutboxEventService service;
 
     @BeforeEach
@@ -59,90 +67,50 @@ class ProcessOutboxEventServiceTest {
                 documentMapper,
                 documentoRepository,
                 outboxRepository,
-                outboxMapper
+                outboxMapper,
+                resultAssembler
         );
     }
 
     @Test
-    void shouldPublishStructuredVersionedFailure() {
-        UUID eventId = UUID.randomUUID();
-        UUID documentId = UUID.randomUUID();
-        UUID patientId = UUID.randomUUID();
+    void shouldPublishSingleAggregatedFailure() {
+        UUID correlationId = UUID.randomUUID();
 
         OutboxDocumentResponse outboxEvent =
-                new OutboxDocumentResponse();
+                failedOutbox(correlationId);
 
-        outboxEvent.setEventId(eventId);
-        outboxEvent.setDocumentId(documentId);
-        outboxEvent.setPatientId(patientId);
-
-        outboxEvent.markFailedResponse(
-                "AI_QUOTA_EXCEEDED",
-                "O limite da IA foi excedido.",
-                false
-        );
-
-        Instant occurredAt =
-                outboxEvent.getOccurredAt();
+        outboxEvent.setResponseEventId(null);
 
         OutboxDocumentResponseEntity entity =
                 new OutboxDocumentResponseEntity();
 
+        DocumentProcessingFailedDTO response =
+                mock(DocumentProcessingFailedDTO.class);
+
         when(outboxMapper.toEntity(outboxEvent))
                 .thenReturn(entity);
 
+        when(resultAssembler.failed(outboxEvent))
+                .thenReturn(response);
+
         service.process(outboxEvent);
 
-        ArgumentCaptor<DocumentProcessedResponseDTO> captor =
-                ArgumentCaptor.forClass(
-                        DocumentProcessedResponseDTO.class
-                );
-
-        verify(publisher).publish(captor.capture());
-
-        DocumentProcessedResponseDTO published =
-                captor.getValue();
-
-        assertEquals(1, published.schemaVersion());
-
-        assertEquals(
-                "DOCUMENT_PROCESSED_RESPONSE",
-                published.eventType()
+        assertNotNull(
+                outboxEvent.getResponseEventId()
         );
 
-        assertEquals(eventId, published.eventId());
-        assertEquals(occurredAt, published.occurredAt());
-        assertEquals(documentId, published.documentId());
-        assertEquals(patientId, published.patientId());
-        assertEquals("FAILED", published.status());
-
-        assertNull(published.document());
-
-        assertEquals(
-                "AI_QUOTA_EXCEEDED",
-                published.error().code()
-        );
-
-        assertEquals(
-                "O limite da IA foi excedido.",
-                published.error().message()
-        );
-
-        assertEquals(
-                false,
-                published.error().retryable()
-        );
-
-        assertEquals(
-                "AI_QUOTA_EXCEEDED: "
-                        + "O limite da IA foi excedido.",
-                published.errorDetail()
+        assertNotEquals(
+                correlationId,
+                outboxEvent.getResponseEventId()
         );
 
         assertEquals(
                 ProcessingStatus.PROCESSED,
                 outboxEvent.getStatus()
         );
+
+        verify(resultAssembler).failed(outboxEvent);
+        verify(publisher).publish(response);
 
         verify(
                 outboxRepository,
@@ -156,40 +124,45 @@ class ProcessOutboxEventServiceTest {
     }
 
     @Test
-    void shouldPublishVersionedSuccessfulResponse() {
-        UUID eventId = UUID.randomUUID();
-        UUID documentId = UUID.randomUUID();
-        UUID patientId = UUID.randomUUID();
+    void shouldPublishOneResponseWithAllDocuments() {
+        UUID correlationId = UUID.randomUUID();
+
+        ObjectId firstResultId = new ObjectId();
+        ObjectId secondResultId = new ObjectId();
 
         OutboxDocumentResponse outboxEvent =
-                new OutboxDocumentResponse();
+                successfulOutbox(
+                        correlationId,
+                        firstResultId,
+                        secondResultId
+                );
 
-        outboxEvent.setEventId(eventId);
-        outboxEvent.setDocumentId(documentId);
-        outboxEvent.setPatientId(patientId);
-        outboxEvent.addDocumentId(
-                new ObjectId().toHexString()
-        );
-        outboxEvent.markSuccessfulResponse();
-
-        Instant occurredAt =
-                outboxEvent.getOccurredAt();
-
-        ObjectId resultId = new ObjectId();
+        outboxEvent.setResponseEventId(null);
 
         OutboxDocumentResponseEntity entity =
                 new OutboxDocumentResponseEntity();
 
-        entity.setDocuments(List.of(resultId));
-
-        DocumentoEntity documentEntity =
-                org.mockito.Mockito.mock(
-                        DocumentoEntity.class
-                );
-
-        Documento document = org.mockito.Mockito.mock(
-                Documento.class
+        entity.setDocuments(
+                List.of(
+                        firstResultId,
+                        secondResultId
+                )
         );
+
+        DocumentoEntity firstEntity =
+                mock(DocumentoEntity.class);
+
+        DocumentoEntity secondEntity =
+                mock(DocumentoEntity.class);
+
+        Documento firstDocument =
+                mock(Documento.class);
+
+        Documento secondDocument =
+                mock(Documento.class);
+
+        DocumentProcessingCompletedDTO response =
+                mock(DocumentProcessingCompletedDTO.class);
 
         when(outboxMapper.toEntity(outboxEvent))
                 .thenReturn(entity);
@@ -198,47 +171,54 @@ class ProcessOutboxEventServiceTest {
                 documentoRepository.buscaDocumentosPorIds(
                         entity.getDocuments()
                 )
-        ).thenReturn(List.of(documentEntity));
+        ).thenReturn(
+                List.of(
+                        firstEntity,
+                        secondEntity
+                )
+        );
 
-        when(documentMapper.toDomain(documentEntity))
-                .thenReturn(document);
+        when(documentMapper.toDomain(firstEntity))
+                .thenReturn(firstDocument);
 
-        when(document.getId())
-                .thenReturn(resultId.toHexString());
+        when(documentMapper.toDomain(secondEntity))
+                .thenReturn(secondDocument);
+
+        when(
+                resultAssembler.completed(
+                        outboxEvent,
+                        List.of(
+                                firstDocument,
+                                secondDocument
+                        )
+                )
+        ).thenReturn(response);
 
         service.process(outboxEvent);
 
-        ArgumentCaptor<DocumentProcessedResponseDTO> captor =
-                ArgumentCaptor.forClass(
-                        DocumentProcessedResponseDTO.class
-                );
-
-        verify(publisher).publish(captor.capture());
-
-        DocumentProcessedResponseDTO published =
-                captor.getValue();
-
-        assertEquals(1, published.schemaVersion());
-
-        assertEquals(
-                "DOCUMENT_PROCESSED_RESPONSE",
-                published.eventType()
+        assertNotNull(
+                outboxEvent.getResponseEventId()
         );
 
-        assertEquals(eventId, published.eventId());
-        assertEquals(occurredAt, published.occurredAt());
-        assertEquals(documentId, published.documentId());
-        assertEquals(patientId, published.patientId());
-        assertEquals("PROCESSED", published.status());
-
-        assertSame(document, published.document());
-        assertNull(published.error());
-        assertNull(published.errorDetail());
+        assertNotEquals(
+                correlationId,
+                outboxEvent.getResponseEventId()
+        );
 
         assertEquals(
                 ProcessingStatus.PROCESSED,
                 outboxEvent.getStatus()
         );
+
+        verify(resultAssembler).completed(
+                outboxEvent,
+                List.of(
+                        firstDocument,
+                        secondDocument
+                )
+        );
+
+        verify(publisher).publish(response);
 
         verify(
                 outboxRepository,
@@ -247,40 +227,32 @@ class ProcessOutboxEventServiceTest {
     }
 
     @Test
-    void shouldNotMarkOutboxAsProcessedWhenPublicationFails() {
+    void shouldNotMarkOutboxProcessedWhenPublicationFails() {
         OutboxDocumentResponse outboxEvent =
-                new OutboxDocumentResponse();
-
-        outboxEvent.setEventId(UUID.randomUUID());
-        outboxEvent.setDocumentId(UUID.randomUUID());
-        outboxEvent.setPatientId(UUID.randomUUID());
-
-        outboxEvent.markFailedResponse(
-                "AI_PROCESSING_ERROR",
-                "Não foi possível processar o documento.",
-                true
-        );
+                failedOutbox(UUID.randomUUID());
 
         OutboxDocumentResponseEntity entity =
                 new OutboxDocumentResponseEntity();
 
+        DocumentProcessingFailedDTO response =
+                mock(DocumentProcessingFailedDTO.class);
+
         when(outboxMapper.toEntity(outboxEvent))
                 .thenReturn(entity);
 
-        org.mockito.Mockito.doThrow(
-                new java.util.concurrent.CompletionException(
+        when(resultAssembler.failed(outboxEvent))
+                .thenReturn(response);
+
+        doThrow(
+                new CompletionException(
                         new IllegalStateException(
                                 "Kafka unavailable"
                         )
                 )
-        ).when(publisher).publish(
-                org.mockito.ArgumentMatchers.any(
-                        DocumentProcessedResponseDTO.class
-                )
-        );
+        ).when(publisher).publish(response);
 
-        org.junit.jupiter.api.Assertions.assertThrows(
-                java.util.concurrent.CompletionException.class,
+        assertThrows(
+                CompletionException.class,
                 () -> service.process(outboxEvent)
         );
 
@@ -292,15 +264,62 @@ class ProcessOutboxEventServiceTest {
         verify(outboxRepository)
                 .persistOrUpdate(entity);
 
-        verify(publisher).publish(
-                org.mockito.ArgumentMatchers.any(
-                        DocumentProcessedResponseDTO.class
-                )
-        );
+        verify(resultAssembler).failed(outboxEvent);
+        verify(publisher).publish(response);
 
         verifyNoInteractions(
                 documentoRepository,
                 documentMapper
         );
+    }
+
+    private static OutboxDocumentResponse failedOutbox(
+            UUID correlationId
+    ) {
+        OutboxDocumentResponse outbox =
+                baseOutbox(correlationId);
+
+        outbox.markFailedResponse(
+                "AI_PROCESSING_ERROR",
+                "Não foi possível processar "
+                        + "o documento.",
+                true
+        );
+
+        return outbox;
+    }
+
+    private static OutboxDocumentResponse successfulOutbox(
+            UUID correlationId,
+            ObjectId firstResultId,
+            ObjectId secondResultId
+    ) {
+        OutboxDocumentResponse outbox =
+                baseOutbox(correlationId);
+
+        outbox.addDocumentId(
+                firstResultId.toHexString()
+        );
+
+        outbox.addDocumentId(
+                secondResultId.toHexString()
+        );
+
+        outbox.markSuccessfulResponse();
+
+        return outbox;
+    }
+
+    private static OutboxDocumentResponse baseOutbox(
+            UUID correlationId
+    ) {
+        OutboxDocumentResponse outbox =
+                new OutboxDocumentResponse();
+
+        outbox.setEventId(correlationId);
+        outbox.setDocumentId(UUID.randomUUID());
+        outbox.setPatientId(UUID.randomUUID());
+
+        return outbox;
     }
 }

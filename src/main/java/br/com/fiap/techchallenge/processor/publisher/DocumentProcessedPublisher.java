@@ -1,6 +1,7 @@
 package br.com.fiap.techchallenge.processor.publisher;
 
-import br.com.fiap.techchallenge.processor.dto.DocumentProcessedResponseDTO;
+import br.com.fiap.techchallenge.processor.dto.DocumentProcessingResultDTO;
+import io.smallrye.reactive.messaging.kafka.Record;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.reactive.messaging.Channel;
@@ -16,51 +17,66 @@ public class DocumentProcessedPublisher {
                     DocumentProcessedPublisher.class
             );
 
-    private final Emitter<DocumentProcessedResponseDTO> emitter;
+    private final Emitter<
+            Record<String, DocumentProcessingResultDTO>
+            > emitter;
 
     @Inject
     public DocumentProcessedPublisher(
-            @Channel("document-processed-response")
-            Emitter<DocumentProcessedResponseDTO> emitter
+            @Channel("document-processing-result")
+            Emitter<
+                    Record<
+                            String,
+                            DocumentProcessingResultDTO
+                            >
+                    > emitter
     ) {
         this.emitter = emitter;
     }
 
     public void publish(
-            DocumentProcessedResponseDTO response
+            DocumentProcessingResultDTO response
     ) {
+        Record<String, DocumentProcessingResultDTO>
+                kafkaRecord =
+                Record.of(
+                        response.documentId().toString(),
+                        response
+                );
+
         try {
-            emitter.send(response)
+            emitter.send(kafkaRecord)
                     .toCompletableFuture()
                     .join();
 
             logger.info(
-                    "action=publishDocumentProcessedEventSuccess, "
+                    "action=publishDocumentProcessingResultSuccess, "
                             + "schemaVersion={}, eventType={}, "
-                            + "eventId={}, documentId={}, "
-                            + "status={}",
+                            + "eventId={}, correlationId={}, "
+                            + "documentId={}",
                     response.schemaVersion(),
                     response.eventType(),
                     response.eventId(),
-                    response.documentId(),
-                    response.status()
+                    response.correlationId(),
+                    response.documentId()
             );
         } catch (RuntimeException exception) {
-            Throwable cause = exception.getCause() == null
-                    ? exception
-                    : exception.getCause();
+            Throwable cause =
+                    exception.getCause() == null
+                            ? exception
+                            : exception.getCause();
 
             logger.error(
-                    "action=publishDocumentProcessedEventFailed, "
+                    "action=publishDocumentProcessingResultFailed, "
                             + "schemaVersion={}, eventType={}, "
-                            + "eventId={}, documentId={}, "
-                            + "status={}, "
+                            + "eventId={}, correlationId={}, "
+                            + "documentId={}, "
                             + "exceptionType={}, causeType={}",
                     response.schemaVersion(),
                     response.eventType(),
                     response.eventId(),
+                    response.correlationId(),
                     response.documentId(),
-                    response.status(),
                     exception.getClass().getSimpleName(),
                     cause.getClass().getSimpleName()
             );

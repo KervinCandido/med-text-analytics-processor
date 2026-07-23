@@ -1,10 +1,14 @@
 package br.com.fiap.techchallenge.processor.publisher;
 
-import br.com.fiap.techchallenge.processor.dto.DocumentProcessedResponseDTO;
+import br.com.fiap.techchallenge.processor.dto.DocumentProcessingErrorDTO;
+import br.com.fiap.techchallenge.processor.dto.DocumentProcessingFailedDTO;
+import br.com.fiap.techchallenge.processor.dto.DocumentProcessingResultDTO;
+import io.smallrye.reactive.messaging.kafka.Record;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -22,21 +26,24 @@ import static org.mockito.Mockito.when;
 class DocumentProcessedPublisherTest {
 
     @Mock
-    private Emitter<DocumentProcessedResponseDTO> emitter;
+    private Emitter<
+            Record<String, DocumentProcessingResultDTO>
+            > emitter;
 
     private DocumentProcessedPublisher publisher;
 
     @BeforeEach
     void setUp() {
-        publisher = new DocumentProcessedPublisher(emitter);
+        publisher =
+                new DocumentProcessedPublisher(emitter);
     }
 
     @Test
-    void shouldReturnAfterKafkaAcknowledgement() {
-        DocumentProcessedResponseDTO response =
+    void shouldPublishUsingDocumentIdAsKafkaKey() {
+        DocumentProcessingFailedDTO response =
                 failedResponse();
 
-        when(emitter.send(response))
+        when(emitter.send(anyKafkaRecord()))
                 .thenReturn(
                         CompletableFuture.completedFuture(null)
                 );
@@ -45,12 +52,14 @@ class DocumentProcessedPublisherTest {
                 () -> publisher.publish(response)
         );
 
-        verify(emitter).send(response);
+        verify(emitter).send(
+                matchingKafkaRecord(response)
+        );
     }
 
     @Test
     void shouldPropagateKafkaPublicationFailure() {
-        DocumentProcessedResponseDTO response =
+        DocumentProcessingFailedDTO response =
                 failedResponse();
 
         CompletableFuture<Void> failedPublication =
@@ -62,7 +71,7 @@ class DocumentProcessedPublisherTest {
                 )
         );
 
-        when(emitter.send(response))
+        when(emitter.send(anyKafkaRecord()))
                 .thenReturn(failedPublication);
 
         assertThrows(
@@ -70,21 +79,52 @@ class DocumentProcessedPublisherTest {
                 () -> publisher.publish(response)
         );
 
-        verify(emitter).send(response);
+        verify(emitter).send(anyKafkaRecord());
     }
 
-    private DocumentProcessedResponseDTO failedResponse() {
-        return DocumentProcessedResponseDTO.failed(
+    private static Record<
+            String,
+            DocumentProcessingResultDTO
+            > anyKafkaRecord() {
+
+        return ArgumentMatchers.any();
+    }
+
+    private static Record<
+            String,
+            DocumentProcessingResultDTO
+            > matchingKafkaRecord(
+            DocumentProcessingResultDTO expectedResponse
+    ) {
+        return ArgumentMatchers.argThat(
+                record ->
+                        record != null
+                                && expectedResponse
+                                .documentId()
+                                .toString()
+                                .equals(record.key())
+                                && expectedResponse.equals(
+                                record.value()
+                        )
+        );
+    }
+
+    private static DocumentProcessingFailedDTO
+    failedResponse() {
+        return new DocumentProcessingFailedDTO(
+                1,
+                "DOCUMENT_PROCESSING_FAILED",
+                UUID.randomUUID(),
                 UUID.randomUUID(),
                 Instant.now(),
                 UUID.randomUUID(),
                 UUID.randomUUID(),
-                "AI_PROCESSING_ERROR",
-                "Não foi possível processar o documento.",
-                true,
-                "AI_PROCESSING_ERROR: "
-                        + "Não foi possível processar "
-                        + "o documento."
+                new DocumentProcessingErrorDTO(
+                        "AI_PROCESSING_ERROR",
+                        "Não foi possível processar "
+                                + "o documento.",
+                        true
+                )
         );
     }
 }

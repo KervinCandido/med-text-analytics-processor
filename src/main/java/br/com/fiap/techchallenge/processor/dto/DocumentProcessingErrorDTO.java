@@ -22,10 +22,10 @@ public record DocumentProcessingErrorDTO(
             );
         }
 
-        if (message.length() > 1000) {
+        if (message.length() > 2000) {
             throw new IllegalArgumentException(
                     "Mensagem de erro deve possuir "
-                            + "até 1000 caracteres."
+                            + "até 2000 caracteres."
             );
         }
     }

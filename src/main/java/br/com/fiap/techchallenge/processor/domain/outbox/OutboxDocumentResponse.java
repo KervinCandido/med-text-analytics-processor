@@ -55,7 +55,17 @@ public class OutboxDocumentResponse {
      */
     private ProcessingStatus responseStatus;
 
+    /*
+     * eventId da solicitação original.
+     * Será publicado como correlationId.
+     */
     private UUID eventId;
+
+    /*
+     * Identificador próprio e estável da resposta terminal.
+     */
+    private UUID responseEventId;
+
     private UUID documentId;
     private UUID patientId;
 
@@ -94,6 +104,7 @@ public class OutboxDocumentResponse {
     public void markSuccessfulResponse() {
         this.responseStatus = ProcessingStatus.PROCESSED;
 
+        ensureResponseEventId();
         markResponseOccurredNow();
 
         this.errorCode = null;
@@ -109,6 +120,7 @@ public class OutboxDocumentResponse {
     ) {
         this.responseStatus = ProcessingStatus.FAILED;
 
+        ensureResponseEventId();
         markResponseOccurredNow();
 
         this.errorCode = errorCode;
@@ -130,6 +142,7 @@ public class OutboxDocumentResponse {
     public void markFailedResponse(String errorDetail) {
         this.responseStatus = ProcessingStatus.FAILED;
 
+        ensureResponseEventId();
         markResponseOccurredNow();
 
         this.errorCode = null;
@@ -138,6 +151,25 @@ public class OutboxDocumentResponse {
         this.errorDetail = truncate(errorDetail, 2000);
 
         this.documents.clear();
+    }
+
+    /*
+     * Preenche o identificador para documentos antigos do Mongo
+     * e corrige registros que reutilizem o eventId da solicitação.
+     */
+    public void ensureResponseEventId() {
+        if (this.responseEventId != null
+                && !this.responseEventId.equals(this.eventId)) {
+            return;
+        }
+
+        UUID candidate;
+
+        do {
+            candidate = UUID.randomUUID();
+        } while (candidate.equals(this.eventId));
+
+        this.responseEventId = candidate;
     }
 
     /*

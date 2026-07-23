@@ -6,9 +6,11 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class OutboxDocumentResponseTest {
@@ -78,6 +80,36 @@ class OutboxDocumentResponseTest {
         );
 
         assertFalse(outbox.getErrorRetryable());
+    }
+
+    @Test
+    void shouldGenerateStableResponseEventIdForLegacyOutbox() {
+        UUID correlationId = UUID.randomUUID();
+
+        OutboxDocumentResponse outbox =
+                new OutboxDocumentResponse();
+
+        outbox.setEventId(correlationId);
+        outbox.setResponseEventId(null);
+
+        outbox.ensureResponseEventId();
+
+        UUID responseEventId =
+                outbox.getResponseEventId();
+
+        assertNotNull(responseEventId);
+
+        assertNotEquals(
+                correlationId,
+                responseEventId
+        );
+
+        outbox.ensureResponseEventId();
+
+        assertEquals(
+                responseEventId,
+                outbox.getResponseEventId()
+        );
     }
 
     @Test
